@@ -1,8 +1,6 @@
 export interface DeviceInfo {
+  platform: string;
   id: string;
-  model: string;
-  osVersion: string;
-  manufacturer: string;
 }
 
 export interface StartAppResponse {
@@ -17,9 +15,14 @@ export interface GetLogsResponse {
   logCount: number;
 }
 
+export interface GetCrashResponse {
+  device: DeviceInfo;
+  crashes: string[];
+}
+
 export interface CaptureAndroidScreenResponse {
   device: DeviceInfo;
-  imagePath: string;
+  screenshot: string; // base64 encoded string
   resolution: {
     width: number;
     height: number;
@@ -28,6 +31,9 @@ export interface CaptureAndroidScreenResponse {
 
 export interface CaptureIOSScreenshotResponse {
   device: DeviceInfo;
-  screenshotData: string; // base64 encoded string
-  orientation: 'portrait' | 'landscape';
+  screenshot: string; // base64 encoded string
+  resolution: {
+    width: number;
+    height: number;
+  };
 }

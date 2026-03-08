@@ -9,12 +9,14 @@ import {
 import {
   StartAppResponse,
   GetLogsResponse,
+  GetCrashResponse,
   CaptureAndroidScreenResponse,
-  CaptureIOSScreenshotResponse
+  CaptureIOSScreenshotResponse,
+  DeviceInfo
 } from "./types.js"
 
-import { startAndroidApp, getAndroidLogs, captureAndroidScreen } from "./android.js"
-import { startIOSApp, getIOSLogs, captureIOSScreenshot } from "./ios.js"
+import { startAndroidApp, getAndroidLogs, getAndroidCrash, captureAndroidScreen } from "./android.js"
+import { startIOSApp, getIOSLogs, getIOSCrash, captureIOSScreenshot } from "./ios.js"
 
 const server = new Server(
   {
@@ -59,7 +61,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "get_logs",
-      description: "Get recent logs from Android or iOS simulator",
+      description: "Get recent logs from Android or iOS simulator (crashes can be derived from logs)",
       inputSchema: {
         type: "object",
         properties: {
@@ -120,19 +122,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         id: string
       }
 
-      let result, deviceInfo
+      let appStarted: boolean
+      let launchTimeMs: number
+      const deviceInfo: DeviceInfo = { platform, id }
 
       if (platform === "android") {
-        result = await startAndroidApp(id)
-        deviceInfo = { platform: "android", id }
+        const result = await startAndroidApp(id)
+        appStarted = result.appStarted
+        launchTimeMs = result.launchTimeMs
       } else {
-        result = await startIOSApp(id)
-        deviceInfo = { platform: "ios", id }
+        const result = await startIOSApp(id)
+        appStarted = result.appStarted
+        launchTimeMs = result.launchTimeMs
       }
 
       const response: StartAppResponse = {
         device: deviceInfo,
-        output: result
+        appStarted,
+        launchTimeMs
       }
 
       return wrapResponse(response)
@@ -145,50 +152,75 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         lines?: number
       }
 
-      let logs, deviceInfo
+      let logs: string[]
+      const deviceInfo: DeviceInfo = { platform, id }
 
       if (platform === "android") {
-        logs = await getAndroidLogs(id, lines ?? 200)
-        deviceInfo = { platform: "android", id }
+        const response = await getAndroidLogs(id, lines ?? 200)
+        logs = response.logs
       } else {
-        logs = await getIOSLogs()
-        deviceInfo = { platform: "ios", id }
+        const response = await getIOSLogs()
+        logs = response.logs
       }
 
-      const response: GetLogsResponse = {
-        device: deviceInfo,
-        logs
-      }
+      // Filter crash lines (e.g. lines containing 'FATAL EXCEPTION') for internal or AI use
+      const crashLines = logs.filter(line => line.includes('FATAL EXCEPTION'))
 
-      return wrapResponse(response)
+      // Return full logs as MCP-compliant content
+      return {
+        content: [
+          {
+            type: 'text',
+            text: logs.join('\n')
+          }
+        ]
+      }
     }
 
     if (name === "capture_android_screen") {
       const { id } = args as { id: string }
 
-      const screenshot = await captureAndroidScreen(id)
-      const deviceInfo = { platform: "android", id }
+      const { screenshot, resolution } = await captureAndroidScreen(id)
+      const deviceInfo: DeviceInfo = { platform: "android", id }
 
       const response: CaptureAndroidScreenResponse = {
         device: deviceInfo,
-        screenshot
+        screenshot,
+        resolution
       }
 
-      return wrapResponse(response)
+      return {
+        content: [
+          {
+            type: 'image',
+            data: screenshot,
+            mimeType: 'image/png'
+          }
+        ]
+      }
     }
 
     if (name === "capture_ios_screenshot") {
       const { id } = args as { id: string }
 
-      const screenshot = await captureIOSScreenshot(id)
-      const deviceInfo = { platform: "ios", id }
+      const { screenshot, resolution } = await captureIOSScreenshot()
+      const deviceInfo: DeviceInfo = { platform: "ios", id }
 
       const response: CaptureIOSScreenshotResponse = {
         device: deviceInfo,
-        screenshot
+        screenshot,
+        resolution
       }
 
-      return wrapResponse(response)
+      return {
+        content: [
+          {
+            type: 'image',
+            data: screenshot,
+            mimeType: 'image/png'
+          }
+        ]
+      }
     }
   } catch (error) {
     return {

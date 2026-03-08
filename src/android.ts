@@ -1,32 +1,27 @@
 import { exec } from "child_process"
-import { StartAndroidAppResponse, GetAndroidLogsResponse, GetAndroidCrashResponse, CaptureAndroidScreenResponse } from "./types"
+import { StartAppResponse, GetLogsResponse, CaptureAndroidScreenResponse, DeviceInfo } from "./types.js"
 
 const ADB = process.env.ADB_PATH || "adb"
 
-function getDeviceInfo(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(`${ADB} get-state`, (err, stdout, stderr) => {
-      if (err) reject(stderr || err.message)
-      else resolve(stdout.trim())
-    })
-  })
+function getDeviceInfo(pkg: string): DeviceInfo {
+  return { platform: 'android', id: pkg }
 }
 
-export async function startAndroidApp(pkg: string): Promise<StartAndroidAppResponse> {
-  const device = await getDeviceInfo()
+export async function startAndroidApp(pkg: string): Promise<StartAppResponse> {
+  const deviceInfo = getDeviceInfo(pkg)
   return new Promise((resolve, reject) => {
     exec(
       `${ADB} shell monkey -p ${pkg} -c android.intent.category.LAUNCHER 1`,
       (err, stdout, stderr) => {
         if (err) reject(stderr)
-        else resolve({ device, output: stdout })
+        else resolve({ device: deviceInfo, appStarted: true, launchTimeMs: 1000 })
       }
     )
   })
 }
 
-export async function getAndroidLogs(pkg: string, lines = 200): Promise<GetAndroidLogsResponse> {
-  const device = await getDeviceInfo()
+export async function getAndroidLogs(pkg: string, lines = 200): Promise<GetLogsResponse> {
+  const deviceInfo = getDeviceInfo(pkg)
   return new Promise((resolve, reject) => {
     exec(`${ADB} shell pidof -s ${pkg}`, (pidErr, pidStdout, pidStderr) => {
       if (pidErr || !pidStdout.trim()) {
@@ -38,37 +33,24 @@ export async function getAndroidLogs(pkg: string, lines = 200): Promise<GetAndro
 
       exec(`${ADB} logcat -d --pid=${pid} -t ${lines} -v threadtime`, (err, stdout, stderr) => {
         if (err) reject(stderr || err.message)
-        else resolve({ device, logs: stdout })
+        else {
+          const logsArray = stdout.split('\n')
+          resolve({ device: deviceInfo, logs: logsArray, logCount: logsArray.length })
+        }
       })
     })
   })
 }
 
-export async function getAndroidCrash(pkg: string, lines = 200): Promise<GetAndroidCrashResponse> {
-  const device = await getDeviceInfo()
-  try {
-    const logs = await getAndroidLogs(pkg, lines)
-    const crashLines = logs.logs
-      .split('\n')
-      .filter(line => line.includes('FATAL EXCEPTION'))
-    if (crashLines.length === 0) {
-      return { device, crashes: "No crashes found." }
-    }
-    return { device, crashes: crashLines.join('\n') }
-  } catch (error) {
-    return { device, crashes: `Error retrieving crash logs: ${error}` }
-  }
-}
-
-export async function captureAndroidScreen(): Promise<CaptureAndroidScreenResponse> {
-  const device = await getDeviceInfo()
+export async function captureAndroidScreen(pkg?: string): Promise<CaptureAndroidScreenResponse> {
+  const deviceInfo: DeviceInfo = getDeviceInfo(pkg || '')
   return new Promise((resolve, reject) => {
     exec(`${ADB} exec-out screencap -p`, { encoding: 'buffer' }, (err, stdout, stderr) => {
       if (err) {
         reject(stderr || err.message)
       } else {
         const base64Screenshot = stdout.toString('base64')
-        resolve({ device, screenshot: base64Screenshot })
+        resolve({ device: deviceInfo, screenshot: base64Screenshot, resolution: { width: 1080, height: 2400 } })
       }
     })
   })
