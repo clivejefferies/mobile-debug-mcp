@@ -1,12 +1,31 @@
 export interface DeviceInfo {
   platform: string;
   id: string;
+  osVersion: string;
+  model: string;
+  simulator: boolean;
 }
 
 export interface StartAppResponse {
   device: DeviceInfo;
   appStarted: boolean;
   launchTimeMs: number;
+}
+
+export interface TerminateAppResponse {
+  device: DeviceInfo;
+  appTerminated: boolean;
+}
+
+export interface RestartAppResponse {
+  device: DeviceInfo;
+  appRestarted: boolean;
+  launchTimeMs: number;
+}
+
+export interface ResetAppDataResponse {
+  device: DeviceInfo;
+  dataCleared: boolean;
 }
 
 export interface GetLogsResponse {

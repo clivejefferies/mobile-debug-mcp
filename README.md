@@ -9,6 +9,9 @@
 - Launch Android apps via package name.
 - Launch iOS apps via bundle ID on a booted simulator.
 - Fetch recent logs from Android or iOS apps.
+- Terminate and restart apps.
+- Clear app data for fresh installs.
+- Capture screenshots.
 - Cross-platform support (Android + iOS).
 - Minimal, focused design for fast debugging loops.
 
@@ -50,7 +53,7 @@ This option installs the package globally for easy use without cloning the repo.
 
 ## MCP Server Configuration
 
-Example WebUI MCP config using `npx --yes` and `ADB_PATH` environment variable:
+Example WebUI MCP config using `npx --yes` and environment variables:
 
 ```json
 {
@@ -60,16 +63,18 @@ Example WebUI MCP config using `npx --yes` and `ADB_PATH` environment variable:
       "args": [
         "--yes",
         "mobile-debug-mcp",
-        "server",
-        "--adb-path",
-        "${ADB_PATH}"
-      ]
+        "server"
+      ],
+      "env": {
+        "ADB_PATH": "/path/to/adb",
+        "XCRUN_PATH": "/usr/bin/xcrun"
+      }
     }
   }
 }
 ```
 
-> Make sure to set the `ADB_PATH` environment variable to the full path of your `adb` executable.
+> Make sure to set `ADB_PATH` (Android) and `XCRUN_PATH` (iOS) if the tools are not in your system PATH.
 
 ---
 
@@ -116,13 +121,14 @@ Fetch recent logs from the app.
 }
 ```
 
-### capture_android_screen
-Capture a screenshot of the current Android device screen.
+### capture_screenshot
+Capture a screenshot of the current device screen.
 
 **Input:**
 ```json
 {
-  "platform": "android"
+  "platform": "android" | "ios",
+  "id": "com.example.app" // Android device/package or iOS simulator/bundle ID
 }
 ```
 
@@ -130,17 +136,19 @@ Capture a screenshot of the current Android device screen.
 ```json
 {
   "device": { /* device info */ },
-  "screenshot": "<base64-encoded PNG data>"
+  "screenshot": "<base64-encoded PNG data>",
+  "resolution": { "width": 1080, "height": 1920 }
 }
 ```
 
-### capture_ios_screenshot
-Capture a screenshot of the current iOS simulator.
+### terminate_app
+Terminate a running app.
 
 **Input:**
 ```json
 {
-  "platform": "ios"
+  "platform": "android" | "ios",
+  "id": "com.example.app" // Android package or iOS bundle ID
 }
 ```
 
@@ -148,7 +156,46 @@ Capture a screenshot of the current iOS simulator.
 ```json
 {
   "device": { /* device info */ },
-  "screenshot": "<base64-encoded PNG data>"
+  "appTerminated": true
+}
+```
+
+### restart_app
+Restart an app (terminate then launch).
+
+**Input:**
+```json
+{
+  "platform": "android" | "ios",
+  "id": "com.example.app" // Android package or iOS bundle ID
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "appRestarted": true,
+  "launchTimeMs": 123
+}
+```
+
+### reset_app_data
+Clear app storage (reset to fresh install state).
+
+**Input:**
+```json
+{
+  "platform": "android" | "ios",
+  "id": "com.example.app" // Android package or iOS bundle ID
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "dataCleared": true
 }
 ```
 
@@ -159,17 +206,17 @@ Capture a screenshot of the current iOS simulator.
 1. Ensure Android device or iOS simulator is running.
 2. Use `start_app` to launch the app.
 3. Use `get_logs` to read the latest logs.
-4. Use `capture_android_screen` or `capture_ios_screenshot` to visually inspect the app if needed.
-5. Repeat for debugging loops.
+4. Use `capture_screenshot` to visually inspect the app if needed.
+5. Use `reset_app_data` to clear state if debugging fresh install scenarios.
+6. Use `restart_app` to quickly reboot the app during development cycles.
 
 ---
 
 ## Notes
 
-- Ensure `adb` and `xcrun` are in your PATH or set `ADB_PATH` accordingly.
-- For iOS, the simulator must be booted before using `start_app`, `get_logs`, or `capture_ios_screenshot`.
-- You may want to clear Android logs before launching for cleaner output: `adb logcat -c`
-- Screenshot tools (`capture_android_screen`, `capture_ios_screenshot`) return a base64-encoded PNG image in the `screenshot` field.
+- Ensure `adb` and `xcrun` are in your PATH or set `ADB_PATH` / `XCRUN_PATH` accordingly.
+- For iOS, the simulator must be booted before using tools.
+- Screenshot tool (`capture_screenshot`) returns a base64-encoded PNG image in the `screenshot` field, which some MCP clients can display directly.
 
 ---
 
