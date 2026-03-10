@@ -134,10 +134,16 @@ export async function getAndroidLogs(appId?: string, lines = 200, deviceId?: str
     let filteredLogs = allLogs
     if (appId) {
        // Filter by checking if the line contains the appId string.
-       filteredLogs = allLogs.filter(line => line.includes(appId))
+       const matchingLogs = allLogs.filter(line => line.includes(appId))
        
-       // If standard filtering fails, we could try a regex for the PID pattern if we had the PID.
-       // For now, let's just return what we matched. The user's logs showed the package name clearly present.
+       if (matchingLogs.length > 0) {
+         filteredLogs = matchingLogs
+       } else {
+         // Fallback: if no logs match the appId, return the raw logs (last N lines)
+         // This matches the behavior of the "working" version provided by the user,
+         // ensuring they at least see system activity if the app is silent or crashing early.
+         filteredLogs = allLogs
+       }
     }
     
     return { device: deviceInfo, logs: filteredLogs, logCount: filteredLogs.length }
@@ -154,14 +160,36 @@ export async function captureAndroidScreen(deviceId?: string): Promise<CaptureAn
   return new Promise((resolve, reject) => {
     const adbArgs = getAdbArgs(['exec-out', 'screencap', '-p'], deviceId)
     
-    execFile(ADB, adbArgs, { encoding: 'buffer' }, (err, stdout, stderr) => {
-       if (err) {
-        reject(new Error(stderr.toString() || err.message))
+    // Using spawn for screencap as well to ensure consistent process handling
+    const child = spawn(ADB, adbArgs)
+    
+    const chunks: Buffer[] = []
+    let stderr = ''
+
+    child.stdout.on('data', (chunk) => {
+      chunks.push(Buffer.from(chunk))
+    })
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString()
+    })
+
+    const timeout = setTimeout(() => {
+      child.kill()
+      reject(new Error(`ADB screencap timed out after 10s`))
+    }, 10000)
+
+    child.on('close', (code) => {
+      clearTimeout(timeout)
+      if (code !== 0) {
+        reject(new Error(stderr.trim() || `Screencap failed with code ${code}`))
         return
       }
 
-      const screenshotBase64 = stdout.toString('base64')
+      const screenshotBuffer = Buffer.concat(chunks)
+      const screenshotBase64 = screenshotBuffer.toString('base64')
 
+      // Get resolution
       execAdb(['shell', 'wm', 'size'], deviceId)
         .then(sizeStdout => {
           let width = 0
@@ -184,6 +212,11 @@ export async function captureAndroidScreen(deviceId?: string): Promise<CaptureAn
             resolution: { width: 0, height: 0 }
           })
         })
+    })
+
+    child.on('error', (err) => {
+      clearTimeout(timeout)
+      reject(err)
     })
   })
 }

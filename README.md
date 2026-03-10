@@ -4,6 +4,8 @@
 
 This server is designed with security in mind, using strict argument handling to prevent shell injection, and reliability, with robust process management to avoid hanging operations.
 
+> **Note:** iOS support is currently an untested Work In Progress (WIP). Please use with caution and report any issues.
+
 ---
 
 ## Features
