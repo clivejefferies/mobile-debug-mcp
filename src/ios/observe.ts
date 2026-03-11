@@ -221,7 +221,7 @@ export class iOSObserve {
              break; // Success
          }
       } catch (err) {
-         console.log(`Attempt ${attempts} failed: ${err}`);
+         console.error(`Attempt ${attempts} failed: ${err}`);
       }
       
       if (attempts === maxAttempts) {

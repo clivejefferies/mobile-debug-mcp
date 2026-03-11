@@ -64,8 +64,19 @@ function parseRuntimeName(runtime: string): string {
   // Example: com.apple.CoreSimulator.SimRuntime.iOS-17-0 -> iOS 17.0
   try {
     const parts = runtime.split('.')
-    const lastPart = parts[parts.length - 1]
-    return lastPart.replace(/-/g, ' ').replace('iOS ', 'iOS ') // Keep iOS prefix
+    const lastPart = parts[parts.length - 1] // e.g. "iOS-17-0"
+    
+    // Split by hyphen to separate OS from version numbers
+    // e.g. "iOS-17-0" -> ["iOS", "17", "0"]
+    const segments = lastPart.split('-');
+    
+    if (segments.length > 1) {
+        const os = segments[0]; // "iOS"
+        const version = segments.slice(1).join('.'); // "17.0"
+        return `${os} ${version}`;
+    }
+    
+    return lastPart;
   } catch {
     return runtime
   }
