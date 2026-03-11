@@ -92,6 +92,8 @@ export interface GetCurrentScreenResponse {
 }
 
 export interface WaitForElementResponse {
+  device: DeviceInfo;
   found: boolean;
   element?: UIElement;
+  error?: string;
 }

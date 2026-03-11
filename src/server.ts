@@ -231,14 +231,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           timeout: {
             type: "number",
-            description: "Max wait time in ms (default 10000)"
+            description: "Max wait time in ms (default 10000)",
+            default: 10000
           },
           deviceId: {
             type: "string",
             description: "Device Serial/UDID. Defaults to connected/booted device."
           }
         },
-        required: ["platform", "text", "timeout"]
+        required: ["platform", "text"]
       }
     }
   ]
@@ -474,18 +475,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === "wait_for_element") {
-      const { platform, text, timeout, deviceId } = args as {
+      const { platform, text, timeout, deviceId } = (args || {}) as {
         platform: "android" | "ios"
         text: string
-        timeout: number
+        timeout?: number
         deviceId?: string
       }
       
+      const effectiveTimeout = timeout ?? 10000;
+      
       let result: WaitForElementResponse;
       if (platform === "android") {
-        result = await androidInteract.waitForElement(text, timeout, deviceId)
+        result = await androidInteract.waitForElement(text, effectiveTimeout, deviceId)
       } else {
-        result = await iosInteract.waitForElement(text, timeout, deviceId)
+        result = await iosInteract.waitForElement(text, effectiveTimeout, deviceId)
       }
       return wrapResponse(result)
     }

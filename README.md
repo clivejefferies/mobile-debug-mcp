@@ -298,8 +298,19 @@ Wait until a UI element with matching text appears on screen or timeout is reach
 **Response:**
 ```json
 {
+  "device": { /* device info */ },
   "found": true,
   "element": { /* UIElement object if found */ }
+}
+```
+
+If the element is not found within the timeout, `found` will be `false`. If a system error occurs (e.g., ADB failure), an `error` field will be present.
+
+```json
+{
+  "device": { /* device info */ },
+  "found": false,
+  "error": "Optional error message"
 }
 ```
 
