@@ -97,3 +97,33 @@ export interface WaitForElementResponse {
   element?: UIElement;
   error?: string;
 }
+
+export interface TapResponse {
+  device: DeviceInfo;
+  success: boolean;
+  x: number;
+  y: number;
+  error?: string;
+}
+
+export interface SwipeResponse {
+  device: DeviceInfo;
+  success: boolean;
+  start: [number, number];
+  end: [number, number];
+  duration: number;
+  error?: string;
+}
+
+export interface TypeTextResponse {
+  device: DeviceInfo;
+  success: boolean;
+  text: string;
+  error?: string;
+}
+
+export interface PressBackResponse {
+  device: DeviceInfo;
+  success: boolean;
+  error?: string;
+}

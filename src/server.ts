@@ -14,7 +14,11 @@ import {
   ResetAppDataResponse,
   GetUITreeResponse,
   GetCurrentScreenResponse,
-  WaitForElementResponse
+  WaitForElementResponse,
+  TapResponse,
+  SwipeResponse,
+  TypeTextResponse,
+  PressBackResponse
 } from "./types.js"
 
 import { AndroidObserve } from "./android/observe.js"
@@ -240,6 +244,98 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           }
         },
         required: ["platform", "text"]
+      }
+    },
+    {
+      name: "tap",
+      description: "Simulate a finger tap on the device screen at specific coordinates.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          platform: {
+            type: "string",
+            enum: ["android", "ios"],
+            description: "Platform to tap on"
+          },
+          x: {
+            type: "number",
+            description: "X coordinate"
+          },
+          y: {
+            type: "number",
+            description: "Y coordinate"
+          },
+          deviceId: {
+            type: "string",
+            description: "Device Serial/UDID. Defaults to connected/booted device."
+          }
+        },
+        required: ["x", "y"]
+      }
+    },
+    {
+      name: "swipe",
+      description: "Simulate a swipe gesture on an Android device.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          platform: {
+            type: "string",
+            enum: ["android"],
+            description: "Platform to swipe on (currently only android supported)"
+          },
+          x1: { type: "number", description: "Start X coordinate" },
+          y1: { type: "number", description: "Start Y coordinate" },
+          x2: { type: "number", description: "End X coordinate" },
+          y2: { type: "number", description: "End Y coordinate" },
+          duration: { type: "number", description: "Duration in ms" },
+          deviceId: {
+            type: "string",
+            description: "Device Serial/UDID. Defaults to connected/booted device."
+          }
+        },
+        required: ["x1", "y1", "x2", "y2", "duration"]
+      }
+    },
+    {
+      name: "type_text",
+      description: "Type text into the currently focused input field on an Android device.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          platform: {
+            type: "string",
+            enum: ["android"],
+            description: "Platform to type on (currently only android supported)"
+          },
+          text: {
+            type: "string",
+            description: "The text to type"
+          },
+          deviceId: {
+            type: "string",
+            description: "Device Serial/UDID. Defaults to connected/booted device."
+          }
+        },
+        required: ["text"]
+      }
+    },
+    {
+      name: "press_back",
+      description: "Simulate pressing the Android Back button.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          platform: {
+            type: "string",
+            enum: ["android"],
+            description: "Platform (currently only android supported)"
+          },
+          deviceId: {
+            type: "string",
+            description: "Device Serial/UDID. Defaults to connected/booted device."
+          }
+        }
       }
     }
   ]
@@ -490,6 +586,94 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       } else {
         result = await iosInteract.waitForElement(text, effectiveTimeout, deviceId)
       }
+      return wrapResponse(result)
+    }
+
+    if (name === "tap") {
+      const { platform, x, y, deviceId } = (args || {}) as {
+        platform?: "android" | "ios"
+        x: number
+        y: number
+        deviceId?: string
+      }
+
+      const effectivePlatform = platform || "android";
+      
+      // Basic validation
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        throw new Error("x and y coordinates are required and must be numbers");
+      }
+
+      let result: TapResponse;
+      if (effectivePlatform === "android") {
+        result = await androidInteract.tap(x, y, deviceId)
+      } else {
+        result = await iosInteract.tap(x, y, deviceId)
+      }
+      return wrapResponse(result)
+    }
+
+    if (name === "swipe") {
+      const { platform, x1, y1, x2, y2, duration, deviceId } = (args || {}) as {
+        platform?: "android"
+        x1: number
+        y1: number
+        x2: number
+        y2: number
+        duration: number
+        deviceId?: string
+      }
+
+      const effectivePlatform = platform || "android";
+      
+      if (typeof x1 !== 'number' || typeof y1 !== 'number' || typeof x2 !== 'number' || typeof y2 !== 'number' || typeof duration !== 'number') {
+        throw new Error("x1, y1, x2, y2, and duration are required and must be numbers");
+      }
+
+      let result: SwipeResponse;
+      if (effectivePlatform === "android") {
+        result = await androidInteract.swipe(x1, y1, x2, y2, duration, deviceId)
+      } else {
+        throw new Error(`Platform ${effectivePlatform} not supported for swipe`)
+      }
+      return wrapResponse(result)
+    }
+
+    if (name === "type_text") {
+      const { platform, text, deviceId } = (args || {}) as {
+        platform?: "android"
+        text: string
+        deviceId?: string
+      }
+
+      const effectivePlatform = platform || "android";
+      
+      if (typeof text !== 'string') {
+        throw new Error("text is required and must be a string");
+      }
+
+      let result: TypeTextResponse;
+      if (effectivePlatform === "android") {
+        result = await androidInteract.typeText(text, deviceId)
+      } else {
+        throw new Error(`Platform ${effectivePlatform} not supported for type_text`)
+      }
+      return wrapResponse(result)
+    }
+
+    if (name === "press_back") {
+      const { platform, deviceId } = (args || {}) as {
+        platform?: "android"
+        deviceId?: string
+      }
+      
+      const effectivePlatform = platform || "android";
+      
+      if (effectivePlatform !== "android") {
+        throw new Error(`Platform ${effectivePlatform} not supported for press_back`)
+      }
+
+      const result = await androidInteract.pressBack(deviceId)
       return wrapResponse(result)
     }
   } catch (error) {

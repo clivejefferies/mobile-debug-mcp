@@ -314,6 +314,118 @@ If the element is not found within the timeout, `found` will be `false`. If a sy
 }
 ```
 
+### tap
+Simulate a finger tap on the device screen at specific coordinates.
+
+Platform support and constraints:
+- Android: Implemented via `adb shell input tap` and works when `adb` is available in PATH or configured via `ADB_PATH`.
+- iOS: Requires Facebook's `idb` tooling. The iOS implementation uses `idb` to deliver UI events and is simulator-oriented (works reliably on a booted simulator). Physical device support depends on `idb` capabilities and a running `idb_companion` on the target device; it may not work in all environments.
+
+Prerequisites for iOS (if you intend to use tap on iOS):
+```bash
+brew tap facebook/fb
+brew install idb-companion
+pip3 install fb-idb
+```
+Ensure `idb` and `idb_companion` are in your PATH. If you use non-standard tool locations, set `XCRUN_PATH` and/or `ADB_PATH` environment variables as appropriate.
+
+Behavior notes:
+- The tool is a primitive input: it only sends a tap at the provided coordinates. It does not inspect or interpret the UI.
+- If `idb` is missing or the simulator/device is not available, the tool will return an error explaining the failure.
+
+**Input:**
+```jsonc
+{
+  "platform": "android" | "ios", // Optional, defaults to "android"
+  "x": 200, // X coordinate (Required)
+  "y": 400, // Y coordinate (Required)
+  "deviceId": "emulator-5554" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "success": true,
+  "x": 200,
+  "y": 400
+}
+```
+
+If the tap fails (e.g., missing `adb`/`idb`, device not found), `success` will be `false` and an `error` field will be present.
+
+### swipe
+Simulate a swipe gesture on an Android device.
+
+**Input:**
+```jsonc
+{
+  "platform": "android", // Optional, defaults to "android"
+  "x1": 500, // Start X (Required)
+  "y1": 1500, // Start Y (Required)
+  "x2": 500, // End X (Required)
+  "y2": 500, // End Y (Required)
+  "duration": 300, // Duration in ms (Required)
+  "deviceId": "emulator-5554" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "success": true,
+  "start": [500, 1500],
+  "end": [500, 500],
+  "duration": 300
+}
+```
+
+If the swipe fails, `success` will be `false` and an `error` field will be present.
+
+### type_text
+Type text into the currently focused input field on an Android device.
+
+**Input:**
+```jsonc
+{
+  "platform": "android", // Optional, defaults to "android"
+  "text": "hello world", // Text to type (Required)
+  "deviceId": "emulator-5554" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "success": true,
+  "text": "hello world"
+}
+```
+
+If the command fails, `success` will be `false` and an `error` field will be present.
+
+### press_back
+Simulate pressing the Android Back button.
+
+**Input:**
+```jsonc
+{
+  "platform": "android", // Optional
+  "deviceId": "emulator-5554" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "success": true
+}
+```
+
 ---
 
 ## Recommended Workflow
