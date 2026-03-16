@@ -96,7 +96,7 @@ process.exit(0)
   process.env.PATH = `${binDir}:${origPath}`
   process.env.XCRUN_PATH = simctlPath
 
-  const { ToolsInteract } = await import('../../src/tools/interact.js')
+  const { ToolsManage } = await import('../../src/tools/manage.js')
 
   try {
     // Android build_and_install

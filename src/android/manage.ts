@@ -2,8 +2,9 @@ import { promises as fs } from 'fs'
 import { spawn } from 'child_process'
 import path from 'path'
 import { existsSync } from 'fs'
-import { execAdb, spawnAdb, getAndroidDeviceMetadata, getDeviceInfo } from './utils.js'
+import { execAdb, spawnAdb, getAndroidDeviceMetadata, getDeviceInfo, findApk } from './utils.js'
 import { detectJavaHome } from '../utils/java.js'
+import { InstallAppResponse, StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse } from '../types.js'
 
 export class AndroidManage {
   async build(projectPath: string, _variant?: string): Promise<{ artifactPath: string, output?: string } | { error: string }> {
@@ -38,19 +39,6 @@ export class AndroidManage {
           proc.on('error', err => reject(err))
         })
       }
-      async function findApk(dir: string): Promise<string | undefined> {
-        const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => [])
-        for (const e of entries) {
-          const full = path.join(dir, e.name)
-          if (e.isDirectory()) {
-            const found = await findApk(full)
-            if (found) return found
-          } else if (e.isFile() && full.endsWith('.apk')) {
-            return full
-          }
-        }
-        return undefined
-      }
       const apk = await findApk(projectPath)
       if (!apk) return { error: 'Could not find APK after build' }
       return { artifactPath: apk }
@@ -59,23 +47,9 @@ export class AndroidManage {
     }
   }
 
-  async installApp(apkPath: string, deviceId?: string): Promise<any> {
+  async installApp(apkPath: string, deviceId?: string): Promise<InstallAppResponse> {
     const metadata = await getAndroidDeviceMetadata('', deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
-
-    async function findApk(dir: string): Promise<string | undefined> {
-      const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => [])
-      for (const e of entries) {
-        const full = path.join(dir, e.name)
-        if (e.isDirectory()) {
-          const found = await findApk(full)
-          if (found) return found
-        } else if (e.isFile() && full.endsWith('.apk')) {
-          return full
-        }
-      }
-      return undefined
-    }
 
     try {
       let apkToInstall = apkPath
@@ -144,21 +118,21 @@ export class AndroidManage {
     }
   }
 
-  async startApp(appId: string, deviceId?: string): Promise<any> {
+  async startApp(appId: string, deviceId?: string): Promise<StartAppResponse> {
     const metadata = await getAndroidDeviceMetadata(appId, deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     await execAdb(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId)
     return { device: deviceInfo, appStarted: true, launchTimeMs: 1000 }
   }
 
-  async terminateApp(appId: string, deviceId?: string): Promise<any> {
+  async terminateApp(appId: string, deviceId?: string): Promise<TerminateAppResponse> {
     const metadata = await getAndroidDeviceMetadata(appId, deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     await execAdb(['shell', 'am', 'force-stop', appId], deviceId)
     return { device: deviceInfo, appTerminated: true }
   }
 
-  async restartApp(appId: string, deviceId?: string): Promise<any> {
+  async restartApp(appId: string, deviceId?: string): Promise<RestartAppResponse> {
     await this.terminateApp(appId, deviceId)
     const startResult = await this.startApp(appId, deviceId)
     return {
@@ -168,7 +142,7 @@ export class AndroidManage {
     }
   }
 
-  async resetAppData(appId: string, deviceId?: string): Promise<any> {
+  async resetAppData(appId: string, deviceId?: string): Promise<ResetAppDataResponse> {
     const metadata = await getAndroidDeviceMetadata(appId, deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     const output = await execAdb(['shell', 'pm', 'clear', appId], deviceId)

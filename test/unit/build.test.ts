@@ -60,14 +60,14 @@ process.exit(0)
   const origPath = process.env.PATH || ''
   process.env.PATH = `${binDir}:${origPath}`
 
-  const { ToolsInteract } = await import('../../src/tools/interact.js')
+  const { ToolsManage } = await import('../../src/tools/manage.js')
 
   try {
-    const ares = await ToolsInteract.buildAppHandler({ platform: 'android', projectPath: androidProject })
+    const ares = await ToolsManage.buildAppHandler({ platform: 'android', projectPath: androidProject })
     console.log('android build', ares)
     assert.ok((ares as any).artifactPath && (ares as any).artifactPath.endsWith('.apk'))
 
-    const ires = await ToolsInteract.buildAppHandler({ platform: 'ios', projectPath: iosProject })
+    const ires = await ToolsManage.buildAppHandler({ platform: 'ios', projectPath: iosProject })
     console.log('ios build', ires)
     assert.ok((ires as any).artifactPath && (ires as any).artifactPath.endsWith('.app'))
 

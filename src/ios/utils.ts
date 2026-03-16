@@ -1,5 +1,7 @@
 import { execFile, spawn } from "child_process"
 import { DeviceInfo } from "../types.js"
+import { promises as fsPromises } from 'fs'
+import path from 'path'
 
 export const XCRUN = process.env.XCRUN_PATH || "xcrun"
 export const IDB = "idb"
@@ -80,6 +82,32 @@ function parseRuntimeName(runtime: string): string {
   } catch {
     return runtime
   }
+}
+
+export async function findAppBundle(dir: string): Promise<string | undefined> {
+  const entries = await fsPromises.readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const e of entries) {
+    const full = path.join(dir, e.name)
+    if (e.isDirectory()) {
+      if (full.endsWith('.app')) return full
+      const found = await findAppBundle(full)
+      if (found) return found
+    }
+  }
+  return undefined
+}
+
+export async function getIOSDeviceMetadata(deviceId: string = "booted"): Promise<DeviceInfo> {
+  const entries = await fsPromises.readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const e of entries) {
+    const full = path.join(dir, e.name)
+    if (e.isDirectory()) {
+      if (full.endsWith('.app')) return full
+      const found = await findAppBundle(full)
+      if (found) return found
+    }
+  }
+  return undefined
 }
 
 export async function getIOSDeviceMetadata(deviceId: string = "booted"): Promise<DeviceInfo> {

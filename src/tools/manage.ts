@@ -19,7 +19,7 @@ export class ToolsManage {
     }
   }
 
-  static async installAppHandler({ platform, appPath, deviceId }: { platform?: 'android' | 'ios', appPath: string, deviceId?: string }) {
+  static async installAppHandler({ platform, appPath, deviceId }: { platform?: 'android' | 'ios', appPath: string, deviceId?: string }): Promise<InstallAppResponse> {
     let chosenPlatform: 'android' | 'ios' | undefined = platform
 
     try {
@@ -61,7 +61,7 @@ export class ToolsManage {
     }
   }
 
-  static async startAppHandler({ platform, appId, deviceId }: { platform: 'android' | 'ios', appId: string, deviceId?: string }) {
+  static async startAppHandler({ platform, appId, deviceId }: { platform: 'android' | 'ios', appId: string, deviceId?: string }): Promise<StartAppResponse> {
     if (platform === 'android') {
       const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
       return await new AndroidManage().startApp(appId, resolved.id)
@@ -71,7 +71,7 @@ export class ToolsManage {
     }
   }
 
-  static async terminateAppHandler({ platform, appId, deviceId }: { platform: 'android' | 'ios', appId: string, deviceId?: string }) {
+  static async terminateAppHandler({ platform, appId, deviceId }: { platform: 'android' | 'ios', appId: string, deviceId?: string }): Promise<TerminateAppResponse> {
     if (platform === 'android') {
       const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
       return await new AndroidManage().terminateApp(appId, resolved.id)
@@ -81,7 +81,7 @@ export class ToolsManage {
     }
   }
 
-  static async restartAppHandler({ platform, appId, deviceId }: { platform: 'android' | 'ios', appId: string, deviceId?: string }) {
+  static async restartAppHandler({ platform, appId, deviceId }: { platform: 'android' | 'ios', appId: string, deviceId?: string }): Promise<RestartAppResponse> {
     if (platform === 'android') {
       const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
       return await new AndroidManage().restartApp(appId, resolved.id)
@@ -91,7 +91,7 @@ export class ToolsManage {
     }
   }
 
-  static async resetAppDataHandler({ platform, appId, deviceId }: { platform: 'android' | 'ios', appId: string, deviceId?: string }) {
+  static async resetAppDataHandler({ platform, appId, deviceId }: { platform: 'android' | 'ios', appId: string, deviceId?: string }): Promise<ResetAppDataResponse> {
     if (platform === 'android') {
       const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
       return await new AndroidManage().resetAppData(appId, resolved.id)

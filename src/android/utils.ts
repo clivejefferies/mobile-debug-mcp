@@ -199,6 +199,21 @@ export async function getAndroidDeviceMetadata(appId: string, deviceId?: string)
   }
 }
 
+export async function findApk(dir: string): Promise<string | undefined> {
+  const entries = await fsPromises.readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const e of entries) {
+    const full = path.join(dir, e.name)
+    if (e.isDirectory()) {
+      const found = await findApk(full)
+      if (found) return found
+    } else if (e.isFile() && full.endsWith('.apk')) {
+      return full
+    }
+  }
+  return undefined
+}
+
+
 export async function listAndroidDevices(appId?: string): Promise<DeviceInfo[]> {
   try {
     const devicesOutput = await execAdb(['devices', '-l'])
