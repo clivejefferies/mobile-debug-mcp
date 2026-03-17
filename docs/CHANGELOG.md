@@ -4,6 +4,7 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## [0.12.0]
 - Add some diagnostics for when tools fail
+- reorganised tests
 
 
 ## [0.11.0]

@@ -159,20 +159,5 @@ export class iOSManage {
       const diag = execCommandWithDiagnostics(['simctl', 'get_app_container', deviceId, bundleId, 'data'], deviceId)
       return { device, dataCleared: false, error: e instanceof Error ? e.message : String(e), diagnostics: diag } as any
     }
-
-    try {
-      const libraryPath = `${dataPath}/Library`
-      const documentsPath = `${dataPath}/Documents`
-      const tmpPath = `${dataPath}/tmp`
-      await fs.rm(libraryPath, { recursive: true, force: true }).catch(() => {})
-      await fs.rm(documentsPath, { recursive: true, force: true }).catch(() => {})
-      await fs.rm(tmpPath, { recursive: true, force: true }).catch(() => {})
-      await fs.mkdir(libraryPath, { recursive: true }).catch(() => {})
-      await fs.mkdir(documentsPath, { recursive: true }).catch(() => {})
-      await fs.mkdir(tmpPath, { recursive: true }).catch(() => {})
-      return { device, dataCleared: true }
-    } catch (e) {
-      throw new Error(`Failed to clear data for ${bundleId}: ${e instanceof Error ? e.message : String(e)}`)
-    }
   }
 }

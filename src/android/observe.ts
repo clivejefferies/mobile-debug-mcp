@@ -81,7 +81,7 @@ export class AndroidObserve {
         elements
       };
     } catch (e) {
-      const errorMessage = `Failed to get UI tree. ADB Path: '${ADB}'. Error: ${e instanceof Error ? e.message : String(e)}`;
+      const errorMessage = `Failed to get UI tree. ADB Path: '${getAdbCmd()}'. Error: ${e instanceof Error ? e.message : String(e)}`;
       console.error(errorMessage);
       return {
           device: deviceInfo,

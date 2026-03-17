@@ -1,7 +1,7 @@
 import { spawn } from "child_process"
 import { promises as fs } from "fs"
 import { GetLogsResponse, CaptureIOSScreenshotResponse, GetUITreeResponse, UIElement, DeviceInfo } from "../types.js"
-import { execCommand, getIOSDeviceMetadata, validateBundleId, IDB, XCRUN } from "./utils.js"
+import { execCommand, getIOSDeviceMetadata, validateBundleId, getIdbCmd, getXcrunCmd } from "./utils.js"
 import { createWriteStream, promises as fsPromises } from 'fs'
 import path from 'path'
 import { parseLogLine } from '../android/utils.js'
@@ -106,7 +106,7 @@ function traverseIDBNode(node: IDBElement, elements: UIElement[], parentIndex: n
 async function isIDBInstalled(): Promise<boolean> {
   return new Promise((resolve) => {
     // Check if 'idb' is in path by trying to run it
-    const child = spawn(IDB, ['--version']);
+    const child = spawn(getIdbCmd(), ['--version']);
     child.on('error', () => resolve(false));
     child.on('close', (code) => resolve(code === 0));
   });
@@ -213,7 +213,7 @@ export class iOSObserve {
          }
 
          const output = await new Promise<string>((resolve, reject) => {
-             const child = spawn(IDB, args);
+             const child = spawn(getIdbCmd(), args);
              let stdout = '';
              let stderr = '';
 
@@ -293,7 +293,7 @@ export class iOSObserve {
       }
 
       const args = ['simctl', 'spawn', deviceId, 'log', 'stream', '--style', 'syslog', '--predicate', predicate]
-      const proc = spawn(XCRUN, args)
+      const proc = spawn(getXcrunCmd(), args)
 
       // Prepare output file
       const tmpDir = process.env.TMPDIR || '/tmp'

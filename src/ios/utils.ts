@@ -61,7 +61,7 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
       })
     }
 
-    const timeoutMs = args.includes('log') ? 10000 : 5000 // 10s for logs, 5s for others
+    const timeoutMs = args.includes('log') ? 30000 : 60000 // 30s for logs, 60s for others
     const timeout = setTimeout(() => {
       child.kill()
       reject(new Error(`Command timed out after ${timeoutMs}ms: ${getXcrunCmd()} ${args.join(' ')}`))
@@ -85,7 +85,7 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
 
 export function execCommandWithDiagnostics(args: string[], deviceId: string = "booted") {
   // Run synchronously to capture stdout/stderr and exitCode reliably for diagnostics
-  const timeoutMs = args.includes('log') ? 10000 : 5000
+  const timeoutMs = args.includes('log') ? 30000 : 60000
   const res = spawnSync(getXcrunCmd(), args, { encoding: 'utf8', timeout: timeoutMs }) as any
   const runResult = {
     exitCode: typeof res.status === 'number' ? res.status : null,

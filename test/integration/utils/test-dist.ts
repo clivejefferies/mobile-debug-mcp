@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
-import { listAndroidDevices } from '../../dist/android/utils.js'
-import { getAndroidLogs, captureAndroidScreen } from '../../dist/android.js'
+import { listAndroidDevices } from '../../../dist/android/utils.js'
+import { getAndroidLogs, captureAndroidScreen } from '../../../dist/android.js'
 
 async function main() {
   try {
