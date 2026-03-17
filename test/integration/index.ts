@@ -1,8 +1,12 @@
-// Integration test runner - entrypoint
-// This file is a lightweight runner that documents available integration tests.
-// Run specific tests directly, e.g.:
-//   npx tsx test/integration/run-real-test.ts
-//   npx tsx test/integration/test-ui-tree.ts android <deviceId?>
-//   npx tsx test/integration/wait_for_element_real.ts <deviceId>
+// Integration test runner (auto-generated)
+import './manage/install.integration';
+import './manage/run-install-android';
+import './manage/run-install-ios';
+import './observe/logstream-real';
+import './observe/test-ui-tree';
+import './observe/wait_for_element_real';
+import './interact/run-real-test';
+import './interact/smoke-test';
+import './utils/test-dist';
 
-console.log('Integration test entry. Run specific test files in test/integration/ as needed.');
+console.log('Integration tests runner imports complete');
