@@ -1,21 +1,6 @@
-export type RunResult = {
-  exitCode: number | null
-  stdout: string
-  stderr: string
-  envSnapshot: Record<string,string | undefined>
-  command: string
-  args: string[]
-  suggestedFixes?: string[]
-}
-
-export function makeEnvSnapshot(keys: string[]) {
-  const snap: Record<string,string|undefined> = {}
-  for (const k of keys) snap[k] = process.env[k]
-  return snap
-}
-
 import { spawnSync } from 'child_process'
 import { getAdbCmd } from './utils.js'
+import { RunResult, makeEnvSnapshot } from '../utils/diagnostics.js'
 
 export function execAdbWithDiagnostics(args: string[], deviceId?: string) {
   const adbArgs = deviceId ? ['-s', deviceId, ...args] : args

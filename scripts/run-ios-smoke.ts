@@ -9,11 +9,11 @@ async function main() {
 
   try {
     console.log('[1] startApp ->', appId)
-    const start = await manage.startApp(appId, deviceId as any);
+    const start = await manage.startApp(appId, deviceId);
     console.log('start result:', start)
 
     console.log('[2] captureScreenshot')
-    const shot = await obs.captureScreenshot(deviceId as any);
+    const shot = await obs.captureScreenshot(deviceId);
     console.log('screenshot OK? size:', shot && shot.screenshot ? shot.screenshot.length : 0)
 
     console.log('[3] getLogs')
@@ -21,7 +21,7 @@ async function main() {
     console.log('logs count:', logs.logCount)
 
     console.log('[4] terminateApp')
-    const term = await manage.terminateApp(appId, deviceId as any);
+    const term = await manage.terminateApp(appId, deviceId);
     console.log('terminate:', term)
 
     console.log('SMOKE OK')

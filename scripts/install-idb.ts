@@ -1,16 +1,9 @@
 #!/usr/bin/env node
 import { execSync, spawnSync } from 'child_process'
 import readline from 'readline'
+import { getIdbCmd, isIDBInstalled, commandWhich } from './idb-helper'
 
 const IDB_PKG = 'fb-idb'
-
-function which(cmd: string): string | null {
-  try {
-    return execSync(`which ${cmd}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
-  } catch {
-    return null
-  }
-}
 
 function runCommand(cmd: string, args: string[]): number {
   const res = spawnSync(cmd, args, { stdio: 'inherit' as any })
@@ -31,8 +24,8 @@ async function confirm(prompt: string): Promise<boolean> {
 async function main() {
   try {
     const idbFromEnv = process.env.IDB_PATH
-    const existing = idbFromEnv || which('idb') || which('command -v idb')
-    if (existing) {
+    const existing = idbFromEnv || getIdbCmd()
+    if (existing && isIDBInstalled()) {
       console.log('idb already available at:', existing)
       process.exit(0)
     }
@@ -50,11 +43,11 @@ async function main() {
     }
 
     const attempts: { name: string; cmd: string; args: string[] }[] = []
-    if (which('pipx')) attempts.push({ name: 'pipx', cmd: 'pipx', args: ['install', IDB_PKG] })
-    if (which('pip') || which('python3')) attempts.push({ name: 'pip', cmd: which('pip') ? 'pip' : 'python3', args: which('pip') ? ['install', '--user', IDB_PKG] : ['-m', 'pip', 'install', '--user', IDB_PKG] })
+    if (commandWhich('pipx')) attempts.push({ name: 'pipx', cmd: 'pipx', args: ['install', IDB_PKG] })
+    if (commandWhich('pip') || commandWhich('python3')) attempts.push({ name: 'pip', cmd: commandWhich('pip') ? 'pip' : 'python3', args: commandWhich('pip') ? ['install', '--user', IDB_PKG] : ['-m', 'pip', 'install', '--user', IDB_PKG] })
 
     // Add brew as a fallback on macOS if present (best-effort)
-    if (process.platform === 'darwin' && which('brew')) {
+    if (process.platform === 'darwin' && commandWhich('brew')) {
       attempts.push({ name: 'brew', cmd: 'brew', args: ['install', 'idb'] })
     }
 

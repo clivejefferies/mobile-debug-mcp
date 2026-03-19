@@ -2,6 +2,7 @@ import { execFile, spawn, execSync, spawnSync } from "child_process"
 import { DeviceInfo } from "../types.js"
 import { promises as fsPromises } from 'fs'
 import path from 'path'
+import { makeEnvSnapshot } from '../utils/diagnostics.js'
 
 export function getXcrunCmd() { return process.env.XCRUN_PATH || 'xcrun' }
 
@@ -139,12 +140,7 @@ export function execCommandWithDiagnostics(args: string[], deviceId: string = "b
     exitCode: typeof res.status === 'number' ? res.status : null,
     stdout: res.stdout || '',
     stderr: res.stderr || '',
-    envSnapshot: {
-      PATH: process.env.PATH,
-      IDB_PATH: process.env.IDB_PATH,
-      JAVA_HOME: process.env.JAVA_HOME,
-      HOME: process.env.HOME
-    },
+    envSnapshot: makeEnvSnapshot(['PATH','IDB_PATH','JAVA_HOME','HOME']),
     command: getXcrunCmd(),
     args,
     deviceId

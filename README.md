@@ -7,9 +7,9 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 ## Requirements
 
 - Node.js >= 18
-- Android SDK (adb) for Android support
+- [Android SDK](https://developer.android.com/studio) (adb) for Android support
 - Xcode command-line tools for iOS support
-- idb for iOS device support
+- [idb](https://github.com/facebook/idb) for iOS device support
 
 ## Configuration example
 
