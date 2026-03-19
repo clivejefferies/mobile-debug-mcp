@@ -89,8 +89,9 @@ async function main() {
   }
 }
 
-if (require.main === module) {
-  main()
+const scriptPath = new URL(import.meta.url).pathname;
+if (scriptPath === process.argv[1]) {
+  main().catch(e => { console.error('Installer failed:', e instanceof Error ? e.message : String(e)); process.exit(2); });
 }
 
 export { main }
