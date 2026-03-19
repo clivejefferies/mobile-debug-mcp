@@ -1,4 +1,4 @@
-# Mobile Device MCP
+# Mobile Dev MCP
 
 A minimal, secure MCP server for AI-assisted mobile development. Build, install, and inspect Android/iOS apps from an MCP-compatible client.
 
