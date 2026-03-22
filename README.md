@@ -33,7 +33,7 @@ I have a crash on the app, can you diagnose it, fix and validate using the mcp t
 
 ## Docs
 
-- Tools: [Tools](docs/TOOLS.md) — full input/response examples
+- Tools: [Tools](docs/tools/TOOLS.md) — full input/response examples
 - Changelog: [Changelog](docs/CHANGELOG.md)
 
 ## License
