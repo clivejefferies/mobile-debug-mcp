@@ -415,12 +415,41 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Defensive validation: ensure caller provided platform and appId.
       if (!platform || !appId) {
         const msg = 'Both platform and appId parameters are required (platform: ios|android, appId: bundle id or package name).'
+        const payload = { ts: new Date().toISOString(), tool: 'start_app', args }
+        let logged = false
+
+        // Prefer the diagnostics module when available
         try {
           const diag = require('./utils/diagnostics.js')
-          if (diag && diag.appendDiagnosticFile) diag.appendDiagnosticFile('bad_requests.log', { ts: new Date().toISOString(), tool: 'start_app', args })
-        } catch {
-          try { require('fs').appendFileSync('/tmp/mcp_bad_requests.log', JSON.stringify({ ts: new Date().toISOString(), tool: 'start_app', args }) + '\n') } catch {}
+          if (diag && diag.appendDiagnosticFile) {
+            diag.appendDiagnosticFile('bad_requests.log', payload)
+            logged = true
+          }
+        } catch (err) {
+          console.error('Diagnostics append failed:', String(err))
         }
+
+        // Fallback to /tmp file (synchronous) and report failures rather than swallowing
+        if (!logged) {
+          try {
+            const fs = require('fs')
+            fs.appendFileSync('/tmp/mcp_bad_requests.log', JSON.stringify(payload) + '\n')
+            logged = true
+          } catch (err) {
+            console.error('Failed to write bad request to /tmp/mcp_bad_requests.log:', String(err))
+          }
+        }
+
+        // Final fallback: emit payload to stderr so it's visible in server logs
+        if (!logged) {
+          try {
+            console.error('Bad request (start_app) payload:', JSON.stringify(payload))
+          } catch (err) {
+            // Last resort: still log the failure
+            console.error('Failed to emit bad request payload to stderr:', String(err))
+          }
+        }
+
         return wrapResponse({ error: msg })
       }
 
