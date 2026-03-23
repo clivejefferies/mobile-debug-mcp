@@ -24,6 +24,8 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
   }
 }
 ```
+You will need to add ADB_PATH for Android and XCRUN_PATH and IDB_PATH for iOS.
+
 ## Usage
 
 Example: 
