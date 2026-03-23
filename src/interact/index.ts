@@ -51,7 +51,7 @@ export class ToolsInteract {
     const start = Date.now()
     let lastFingerprint: string | null = null
 
-    while (Date.now() - start < (timeoutMs || 5000)) {
+    while (Date.now() - start < timeoutMs) {
       try {
         const res = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
         const fp = res?.fingerprint ?? null
