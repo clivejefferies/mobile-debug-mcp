@@ -200,6 +200,8 @@ export class ToolsInteract {
       }
     } catch (e) { console.error('Error resolving ancestor:', e) }
 
+    if (!best) return { found: false, error: 'Element not found' }
+
     const boundsObj = Array.isArray(best.bounds) ? { left: best.bounds[0], top: best.bounds[1], right: best.bounds[2], bottom: best.bounds[3] } : null
     const tapCoordinates = boundsObj ? { x: Math.floor((boundsObj.left + boundsObj.right) / 2), y: Math.floor((boundsObj.top + boundsObj.bottom) / 2) } : null
 
