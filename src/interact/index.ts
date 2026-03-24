@@ -47,6 +47,158 @@ export class ToolsInteract {
     return await interact.scrollToElement(selector, direction, maxScrolls, scrollAmount, resolved.id)
   }
 
+  static async findElementHandler({ query, exact = false, timeoutMs = 3000, platform, deviceId }: { query: string, exact?: boolean, timeoutMs?: number, platform?: 'android' | 'ios', deviceId?: string }) {
+    // Try to use observe layer to fetch the current UI tree and perform a fast semantic search
+    const start = Date.now()
+    const deadline = start + (timeoutMs || 3000)
+    const normalize = (s: any) => (s === null || s === undefined) ? '' : String(s).toLowerCase().trim()
+
+    const q = normalize(query)
+    if (!q) return { found: false, error: 'Empty query' }
+
+    let best: any = null
+    let bestScore = 0
+
+    const scoreElement = (el: any) => {
+      if (!el || !el.visible) return 0
+      const bounds = el.bounds || [0,0,0,0]
+      if (!Array.isArray(bounds) || bounds.length < 4) return 0
+      const [l,t,r,b] = bounds
+      if (r <= l || b <= t) return 0
+      // Do not early-return on non-interactable elements — score them so we can locate their clickable ancestor later
+      const interactable = !!(el.clickable || el.enabled || (el as any).focusable)
+
+      const text = normalize(el.text ?? el.label ?? el.value ?? '')
+      const content = normalize(el.contentDescription ?? el.contentDesc ?? el.accessibilityLabel ?? '')
+      const resourceId = normalize(el.resourceId ?? el.resourceID ?? el.id ?? '')
+      const className = normalize(el.type ?? el.class ?? '')
+
+      let score = 0
+      if (exact) {
+        if (text && text === q) score = 1.0
+        else if (content && content === q) score = 0.95
+      } else {
+        if (text && text === q) score = 1.0
+        else if (content && content === q) score = 0.95
+        else if (text && text.includes(q)) score = 0.6
+        else if (content && content.includes(q)) score = 0.55
+        else if (resourceId && resourceId.includes(q)) score = 0.7
+        else if (className && className.includes(q)) score = 0.3
+      }
+      if (score > 0 && interactable) score += 0.05
+      return score
+    }
+
+    while (Date.now() <= deadline) {
+      try {
+        const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId })
+        if (tree && Array.isArray((tree as any).elements)) {
+          const elements = (tree as any).elements
+          for (let i = 0; i < elements.length; i++) {
+            const el = elements[i]
+            try {
+              const s = scoreElement(el)
+              const interactable = !!(el.clickable || el.enabled || (el as any).focusable)
+              if (s > bestScore) { bestScore = s; best = el; (best as any)._index = i; (best as any)._interactable = interactable }
+              if (bestScore >= 0.95) break
+            } catch {}
+          }
+          if (bestScore >= 0.95) break
+        }
+      } catch {
+        // ignore transient error
+      }
+      if (Date.now() > deadline) break
+      await new Promise(r => setTimeout(r, 100))
+    }
+
+    if (!best) return { found: false, error: 'Element not found' }
+
+    // If the best match is not interactable, try to resolve an actionable ancestor.
+    try {
+      const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
+      const elements = (tree && Array.isArray(tree.elements)) ? tree.elements : []
+      let chosen = best as any
+      const childBounds = Array.isArray(chosen?.bounds) ? chosen.bounds : null
+
+      // Strategy 1: if parentId references an index, climb that chain
+      let resolvedAncestor: any = null
+      if (childBounds && (chosen.parentId !== undefined && chosen.parentId !== null)) {
+        let cur = chosen
+        let safety = 0
+        while (cur && safety < 20 && !(cur.clickable || cur.focusable) && (cur.parentId !== undefined && cur.parentId !== null)) {
+          let pid = cur.parentId
+          let idx: number | null = null
+          if (typeof pid === 'number') idx = pid
+          else if (typeof pid === 'string' && /^\d+$/.test(pid)) idx = Number(pid)
+          // If parentId is not an index, try to find by matching resourceId or id field
+          if (idx !== null && elements[idx]) {
+            cur = elements[idx]
+            if (cur && (cur.clickable || cur.enabled || cur.focusable)) { resolvedAncestor = cur; break }
+          } else if (typeof pid === 'string') {
+            // fallback: search elements for matching resourceId or id
+            const found = elements.find((el:any)=> (el.resourceId === pid || el.id === pid))
+            if (found) {
+              cur = found
+              if (cur && (cur.clickable || cur.enabled || cur.focusable)) { resolvedAncestor = cur; break }
+              // otherwise continue climbing if this found element has its own parentId
+            } else {
+              break
+            }
+          } else {
+            break
+          }
+          safety++
+        }
+      }
+
+      // Strategy 2: fallback - find a clickable element whose bounds fully contain the child's bounds
+      if (!resolvedAncestor && childBounds) {
+        const [cl,ct,cr,cb] = childBounds
+        // find candidates that are clickable and contain the child bounds
+        const candidates = elements.filter((el:any)=> el && (el.clickable || el.focusable) && Array.isArray(el.bounds) && el.bounds.length>=4).map((el:any)=>({el, bounds: el.bounds}))
+        let bestCandidate: any = null
+        let bestCandidateArea = Infinity
+        for (const c of candidates) {
+          const [pl,pt,pr,pb] = c.bounds
+          if (pl <= cl && pt <= ct && pr >= cr && pb >= cb) {
+            const area = (pr-pl) * (pb-pt)
+            if (area < bestCandidateArea) { bestCandidateArea = area; bestCandidate = c.el }
+          }
+        }
+        if (bestCandidate) resolvedAncestor = bestCandidate
+      }
+
+      if (resolvedAncestor) {
+        best = resolvedAncestor
+        // small score bump to reflect actionability
+        bestScore = Math.min(1, bestScore + 0.02)
+      }
+    } catch {
+      // ignore parent-walk errors
+    }
+
+    const boundsObj = Array.isArray(best.bounds) ? { left: best.bounds[0], top: best.bounds[1], right: best.bounds[2], bottom: best.bounds[3] } : null
+    const tapCoordinates = boundsObj ? { x: Math.floor((boundsObj.left + boundsObj.right) / 2), y: Math.floor((boundsObj.top + boundsObj.bottom) / 2) } : null
+
+    const outEl = {
+      text: best.text ?? null,
+      resourceId: best.resourceId ?? null,
+      contentDesc: best.contentDescription ?? best.contentDesc ?? null,
+      class: best.type ?? best.class ?? null,
+      bounds: boundsObj,
+      clickable: !!best.clickable,
+      enabled: !!best.enabled,
+      tapCoordinates,
+      telemetry: {
+        matchedIndex: (best as any)?._index ?? null,
+        matchedInteractable: !!(best as any)?._interactable
+      }
+    }
+    const scoreVal = Math.min(1, Number(bestScore.toFixed(3)))
+    return { found: true, element: outEl, score: scoreVal, confidence: scoreVal }
+  }
+
   static async waitForScreenChangeHandler({ platform, previousFingerprint, timeoutMs = 5000, pollIntervalMs = 300, deviceId }: { platform?: 'android' | 'ios', previousFingerprint: string, timeoutMs?: number, pollIntervalMs?: number, deviceId?: string }) {
     const start = Date.now()
     let lastFingerprint: string | null = null
