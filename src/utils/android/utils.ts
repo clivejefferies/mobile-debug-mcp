@@ -3,8 +3,51 @@ import { promises as fsPromises, existsSync } from 'fs'
 import path from 'path'
 import { detectJavaHome } from '../java.js'
 import { execCmd } from '../exec.js'
+import { spawnSync } from 'child_process'
 
-export function getAdbCmd() { return process.env.ADB_PATH || 'adb' }
+function findInPath(cmd: string): string | null {
+  try {
+    // prefer command -v for POSIX
+    const res = spawnSync('command', ['-v', cmd], { encoding: 'utf8' })
+    if (res.status === 0 && res.stdout) return res.stdout.trim()
+  } catch (e: unknown) { console.debug(`[findInPath] command -v ${cmd} failed: ${String(e)}`) }
+  try {
+    const res = spawnSync('which', [cmd], { encoding: 'utf8' })
+    if (res.status === 0 && res.stdout) return res.stdout.trim()
+  } catch (e: unknown) { console.debug(`[findInPath] which ${cmd} failed: ${String(e)}`) }
+  return null
+}
+
+export function resolveAdbCmd(): string {
+  // Priority: explicit env ADB_PATH -> ANDROID_SDK_ROOT/platform-tools/adb -> ANDROID_HOME/platform-tools/adb -> ~/Library/Android/sdk/platform-tools/adb -> PATH discovery -> 'adb'
+  if (process.env.ADB_PATH && process.env.ADB_PATH.trim()) return process.env.ADB_PATH
+  const sdkRoot = process.env.ANDROID_SDK_ROOT || process.env.ANDROID_HOME
+  if (sdkRoot) {
+    const candidate = path.join(sdkRoot, 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb')
+    if (existsSync(candidate)) return candidate
+  }
+  // common macOS user SDK path
+  const homeSdk = path.join(process.env.HOME || '', 'Library', 'Android', 'sdk', 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb')
+  if (existsSync(homeSdk)) return homeSdk
+  const found = findInPath('adb')
+  if (found) return found
+  return 'adb'
+}
+
+export function getAdbCmd() { return resolveAdbCmd() }
+
+export function ensureAdbAvailable() {
+  const adb = resolveAdbCmd()
+  try {
+    const res = spawnSync(adb, ['--version'], { encoding: 'utf8' })
+    if (res.status === 0) {
+      return { adbCmd: adb, ok: true, version: (res.stdout || res.stderr || '').trim() }
+    }
+    return { adbCmd: adb, ok: false, error: (res.stderr || res.stdout || '').trim() }
+  } catch (err: unknown) {
+    return { adbCmd: adb, ok: false, error: String(err) }
+  }
+}
 
 /**
  * Prepare Gradle execution options for building an Android project.
@@ -31,22 +74,58 @@ export async function prepareGradle(projectPath: string): Promise<{ execCmd: str
 
   const detectedJavaHome = await detectJavaHome().catch(() => undefined)
   const env = Object.assign({}, process.env)
+
+  // Ensure child processes can find Android platform-tools (adb, etc.) by
+  // prepending the platform-tools directory to PATH for spawned processes.
+  const adbPath = resolveAdbCmd()
+  let platformToolsDir: string | undefined = undefined
+  try {
+    if (adbPath && adbPath !== 'adb' && existsSync(adbPath)) {
+      platformToolsDir = path.dirname(adbPath)
+    }
+  } catch (e: unknown) { console.debug(`[prepareGradle] error resolving adbPath: ${String(e)}`) }
+
+  const pathParts: string[] = []
   if (detectedJavaHome) {
     if (env.JAVA_HOME !== detectedJavaHome) {
       env.JAVA_HOME = detectedJavaHome
-      env.PATH = `${path.join(detectedJavaHome, 'bin')}${path.delimiter}${env.PATH || ''}`
     }
+    const javaBin = path.join(detectedJavaHome, 'bin')
+    pathParts.push(javaBin)
     gradleArgs.push(`-Dorg.gradle.java.home=${detectedJavaHome}`)
     gradleArgs.push('--no-daemon')
     env.GRADLE_JAVA_HOME = detectedJavaHome
   }
 
-  try { delete env.SHELL } catch {}
+  if (platformToolsDir) {
+    // Prepend platform-tools so gradle and child tools find adb without modifying global env
+    if (!env.PATH || !env.PATH.includes(platformToolsDir)) {
+      pathParts.push(platformToolsDir)
+    }
+  } else if (process.env.ANDROID_SDK_ROOT || process.env.ANDROID_HOME) {
+    const sdkRoot = process.env.ANDROID_SDK_ROOT || process.env.ANDROID_HOME || ''
+    const candidate = path.join(sdkRoot, 'platform-tools')
+    if (existsSync(candidate) && (!env.PATH || !env.PATH.includes(candidate))) {
+      pathParts.push(candidate)
+    }
+  } else {
+    // also try common user sdk location
+    const homeSdkTools = path.join(process.env.HOME || '', 'Library', 'Android', 'sdk', 'platform-tools')
+    if (existsSync(homeSdkTools) && (!env.PATH || !env.PATH.includes(homeSdkTools))) {
+      pathParts.push(homeSdkTools)
+    }
+  }
+
+  if (pathParts.length > 0) {
+    env.PATH = `${pathParts.join(path.delimiter)}${path.delimiter}${env.PATH || ''}`
+  }
+
+  try { delete env.SHELL } catch (e: unknown) { console.debug('[prepareGradle] failed to delete SHELL from env:', String(e)) }
 
   const useWrapper = existsSync(gradlewPath)
   const spawnOpts: any = { cwd: projectPath, env }
   if (useWrapper) {
-    try { await fsPromises.chmod(gradlewPath, 0o755) } catch {}
+    try { await fsPromises.chmod(gradlewPath, 0o755) } catch (e: unknown) { console.debug('[prepareGradle] chmod failed for gradlew:', String(e)) }
     spawnOpts.shell = false
   } else {
     spawnOpts.shell = true
@@ -125,8 +204,7 @@ export async function getAndroidDeviceMetadata(appId: string, deviceId?: string)
         if (deviceLines.length === 1) {
           resolvedDeviceId = deviceLines[0];
         }
-      } catch {
-        // ignore and continue without resolvedDeviceId
+      } catch (e: unknown) { console.debug('[getAndroidDeviceMetadata] error detecting single device: ' + String(e))
       }
     }
 
@@ -139,7 +217,8 @@ export async function getAndroidDeviceMetadata(appId: string, deviceId?: string)
     
     const simulator = simOutput === '1'
     return { platform: 'android', id: resolvedDeviceId || 'default', osVersion, model, simulator }
-  } catch {
+  } catch (e: unknown) {
+    console.debug('[getAndroidDeviceMetadata] failed to gather metadata: ' + String(e))
     return { platform: 'android', id: deviceId || 'default', osVersion: '', model: '', simulator: false }
   }
 }
@@ -180,20 +259,14 @@ export async function listAndroidDevices(appId?: string): Promise<DeviceInfo[]> 
           try {
             const pm = await execAdb(['shell', 'pm', 'path', appId], serial)
             appInstalled = !!(pm && pm.includes('package:'))
-          } catch {
-            appInstalled = false
-          }
+          } catch (e: unknown) { console.debug(`[listAndroidDevices] pm check failed for ${serial}: ${String(e)}`); appInstalled = false }
         }
         return { platform: 'android', id: serial, osVersion, model, simulator, appInstalled } as DeviceInfo & { appInstalled?: boolean }
-      } catch {
-        return { platform: 'android', id: serial, osVersion: '', model: '', simulator: false, appInstalled: false } as DeviceInfo & { appInstalled?: boolean }
-      }
+      } catch (e: unknown) { console.debug(`[listAndroidDevices] failed gathering metadata for ${serial}: ${String(e)}`); return { platform: 'android', id: serial, osVersion: '', model: '', simulator: false, appInstalled: false } as DeviceInfo & { appInstalled?: boolean } }
     }))
 
     return infos
-  } catch {
-    return []
-  }
+  } catch (e: unknown) { console.debug('[listAndroidDevices] failed to list devices: ' + String(e)); return [] }
 }
 
 // UI helper utilities shared by observe/interact
@@ -219,9 +292,7 @@ export async function getScreenResolution(deviceId?: string): Promise<{ width: n
     if (match) {
       return { width: parseInt(match[1]), height: parseInt(match[2]) };
     }
-  } catch {
-    // ignore
-  }
+  } catch (e: unknown) { console.debug('[getScreenResolution] failed to detect screen resolution: ' + String(e)) }
   return { width: 0, height: 0 };
 }
 
