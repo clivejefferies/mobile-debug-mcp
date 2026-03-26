@@ -1,11 +1,13 @@
 import { checkAndroid } from './android.js'
 import { checkIOS } from './ios.js'
+import { checkGradle } from './gradle.js'
 
 export async function getSystemStatus() {
   try {
     const android = await checkAndroid()
     const ios = await checkIOS()
-    const issues = [...android.issues, ...ios.issues]
+    const gradle = await checkGradle()
+    const issues = [...android.issues, ...ios.issues, ...(gradle.issues || [])]
 
     const success = issues.length === 0
     return {
@@ -19,7 +21,11 @@ export async function getSystemStatus() {
       issues,
       appInstalled: android.appInstalled,
       iosAvailable: ios.iosAvailable,
-      iosDevices: ios.iosDevices
+      iosDevices: ios.iosDevices,
+      gradleJavaHome: gradle.gradleJavaHome,
+      gradleValid: gradle.gradleValid,
+      gradleFilesChecked: gradle.filesChecked,
+      gradleSuggestedFixes: gradle.suggestedFixes
     }
   } catch (e: unknown) {
     return { success: false, issues: ['Internal error: ' + (e instanceof Error ? e.message : String(e))] }

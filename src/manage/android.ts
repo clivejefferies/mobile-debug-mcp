@@ -64,8 +64,12 @@ export class AndroidManage {
         const spawnOpts: any = { cwd: apkPath, env }
         if (useWrapper) {
           await fs.chmod(wrapperPath, 0o755).catch(() => {})
+          // Run wrapper directly to avoid shell splitting of args
           spawnOpts.shell = false
-        } else spawnOpts.shell = true
+        } else {
+          // Execute gradle directly without a shell so paths with spaces are preserved
+          spawnOpts.shell = false
+        }
 
         const proc = spawn(execCmd, gradleArgs, spawnOpts)
         let stderr = ''

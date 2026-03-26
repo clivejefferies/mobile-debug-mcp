@@ -2,6 +2,9 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.20.1]
+- Fixes gradle home issue for android
+
 ## [0.20.0]
 - Added `get_system_status` tool and refactored system health checks into `src/system`.
   - Provides a fast environment healthcheck (ADB availability/version, connected devices, log access, Android env vars, and basic iOS xcrun/simulator checks).

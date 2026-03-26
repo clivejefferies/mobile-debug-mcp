@@ -4,6 +4,7 @@ import path from 'path'
 import { detectJavaHome } from '../java.js'
 import { execCmd } from '../exec.js'
 import { spawnSync } from 'child_process'
+import { checkGradle } from '../../system/gradle.js'
 
 function findInPath(cmd: string): string | null {
   try {
@@ -73,6 +74,14 @@ export async function prepareGradle(projectPath: string): Promise<{ execCmd: str
   }
 
   const detectedJavaHome = await detectJavaHome().catch(() => undefined)
+  // Check for problematic org.gradle.java.home entries (env or properties) and avoid passing invalid values to Gradle
+  let gradleCheck
+  try {
+    gradleCheck = await checkGradle()
+  } catch (e: unknown) {
+    gradleCheck = { gradleJavaHome: undefined, gradleValid: false, filesChecked: [], issues: [] }
+  }
+
   const env = Object.assign({}, process.env)
 
   // Ensure child processes can find Android platform-tools (adb, etc.) by
@@ -86,6 +95,7 @@ export async function prepareGradle(projectPath: string): Promise<{ execCmd: str
   } catch (e: unknown) { console.debug(`[prepareGradle] error resolving adbPath: ${String(e)}`) }
 
   const pathParts: string[] = []
+  // Prefer a detected (validated) Java home from the system/IDE
   if (detectedJavaHome) {
     if (env.JAVA_HOME !== detectedJavaHome) {
       env.JAVA_HOME = detectedJavaHome
@@ -95,6 +105,20 @@ export async function prepareGradle(projectPath: string): Promise<{ execCmd: str
     gradleArgs.push(`-Dorg.gradle.java.home=${detectedJavaHome}`)
     gradleArgs.push('--no-daemon')
     env.GRADLE_JAVA_HOME = detectedJavaHome
+  } else if (gradleCheck && gradleCheck.gradleJavaHome) {
+    // There's an org.gradle.java.home configured somewhere (env or gradle.properties)
+    if (gradleCheck.gradleValid) {
+      const p = gradleCheck.gradleJavaHome as string
+      const javaBin = path.join(p, 'bin')
+      if (!env.PATH || !env.PATH.includes(javaBin)) pathParts.push(javaBin)
+      gradleArgs.push(`-Dorg.gradle.java.home=${p}`)
+      gradleArgs.push('--no-daemon')
+      env.GRADLE_JAVA_HOME = p
+    } else {
+      // Invalid gradle java home detected: avoid passing it to Gradle and remove from spawn env
+      console.debug(`[prepareGradle] Invalid org.gradle.java.home detected (${gradleCheck.gradleJavaHome}); removing from spawn env to avoid Gradle error.`)
+      try { delete env.GRADLE_JAVA_HOME } catch (e: unknown) { }
+    }
   }
 
   if (platformToolsDir) {
@@ -126,9 +150,11 @@ export async function prepareGradle(projectPath: string): Promise<{ execCmd: str
   const spawnOpts: any = { cwd: projectPath, env }
   if (useWrapper) {
     try { await fsPromises.chmod(gradlewPath, 0o755) } catch (e: unknown) { console.debug('[prepareGradle] chmod failed for gradlew:', String(e)) }
+    // Execute the wrapper directly without a shell to avoid shell tokenization of args (spaces in paths)
     spawnOpts.shell = false
   } else {
-    spawnOpts.shell = true
+    // Prefer executing gradle directly without invoking a shell to preserve argument boundaries
+    spawnOpts.shell = false
   }
 
   return { execCmd, gradleArgs, spawnOpts }
