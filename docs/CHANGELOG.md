@@ -2,6 +2,9 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.21.0]
+- Added `observe_until` as an tool for agents to wiat for things like API requests
+
 ## [0.20.1]
 - Fixes gradle home issue for android
 

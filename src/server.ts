@@ -340,6 +340,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       }
     },
     {
+      name: "observe_until",
+      description: "Wait for a UI condition (element present/absent) and require a stability window before returning success. Network-based waiting is not required; UI-only synchronization is the default and primary mode.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["ui","log","screen","idle"], description: "Condition type to observe", default: "ui" },
+          query: { type: "string", description: "Optional query string for ui/log/screen types" },
+          timeoutMs: { type: "number", description: "Timeout in ms to wait for condition (default 30000)", default: 30000 },
+          pollIntervalMs: { type: "number", description: "Polling interval in ms (default 300, clamped to 250-500)", default: 300 },
+          match: { type: "string", enum: ["present","absent"], description: "Match mode for UI checks: 'present' or 'absent' (default 'present')", default: "present" },
+          stability_ms: { type: "number", description: "Stability window in ms that the condition must hold before returning success (default 700)", default: 700 },
+          includeSnapshotOnFailure: { type: "boolean", description: "Whether to include a debug snapshot on timeout (default true)", default: true },
+          platform: { type: "string", enum: ["android","ios"], description: "Optional platform override" },
+          deviceId: { type: "string", description: "Optional device serial/udid" }
+        }
+      }
+    },
+
+
+    {
       name: "wait_for_element",
       description: "Wait until a UI element with matching text appears on screen or timeout is reached.",
       inputSchema: {
