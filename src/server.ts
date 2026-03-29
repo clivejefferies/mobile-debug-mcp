@@ -340,8 +340,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       }
     },
     {
-      name: "observe_until",
-      description: "Wait for a UI condition (element present/absent) and require a stability window before returning success. Network-based waiting is not required; UI-only synchronization is the default and primary mode.",
+      name: "wait_for_ui",
+      description: "Wait for a UI/log/screen/idle condition with a stability window before returning success.",
       inputSchema: {
         type: "object",
         properties: {
@@ -359,34 +359,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
 
 
-    {
-      name: "wait_for_element",
-      description: "Wait until a UI element with matching text appears on screen or timeout is reached.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          platform: {
-            type: "string",
-            enum: ["android", "ios"],
-            description: "Platform to check"
-          },
-          text: {
-            type: "string",
-            description: "Text content of the element to wait for"
-          },
-          timeout: {
-            type: "number",
-            description: "Max wait time in ms (default 10000)",
-            default: 10000
-          },
-          deviceId: {
-            type: "string",
-            description: "Device Serial/UDID. Defaults to connected/booted device."
-          }
-        },
-        required: ["platform", "text"]
-      }
-    },
     {
       name: "find_element",
       description: "Find a UI element by semantic query (text, content-desc, resource-id, class). Returns best match.",
@@ -694,9 +666,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: SchemaOutput<typ
       return wrapResponse(res)
     }
 
-    if (name === "wait_for_element") {
-      const { platform, text, timeout, deviceId } = (args || {}) as any
-      const res = await ToolsInteract.waitForElementHandler({ platform, text, timeout, deviceId })
+
+    if (name === "wait_for_ui") {
+      const { type = 'ui', query, timeoutMs = 30000, pollIntervalMs = 300, includeSnapshotOnFailure = true, match = 'present', stability_ms = 700, observationDelayMs = 0, platform, deviceId } = (args || {}) as any
+      const res = await ToolsInteract.waitForUIHandler({ type, query, timeoutMs, pollIntervalMs, includeSnapshotOnFailure, match, stability_ms, observationDelayMs, platform, deviceId })
       return wrapResponse(res)
     }
 

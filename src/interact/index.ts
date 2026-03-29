@@ -39,12 +39,6 @@ export class ToolsInteract {
     return { interact: interact as any, resolved, platform: effectivePlatform }
   }
 
-  static async waitForElementHandler({ platform, text, timeout, deviceId }: { platform: 'android' | 'ios', text: string, timeout?: number, deviceId?: string }) {
-    const effectiveTimeout = timeout ?? 10000
-    const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
-    return await interact.waitForElement(text, effectiveTimeout, resolved.id)
-  }
-
   static async tapHandler({ platform, x, y, deviceId }: { platform?: 'android' | 'ios', x: number, y: number, deviceId?: string }) {
     const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
     return await interact.tap(x, y, resolved.id)
@@ -224,6 +218,11 @@ export class ToolsInteract {
     return { found: true, element: outEl, score: scoreVal, confidence: scoreVal }
   }
 
+  static async waitForUIHandler({ type = 'ui', query, timeoutMs = 30000, pollIntervalMs = 300, includeSnapshotOnFailure = true, match = 'present', stability_ms = 700, observationDelayMs = 0, platform, deviceId }: { type?: 'ui' | 'log' | 'screen' | 'idle', query?: string, timeoutMs?: number, pollIntervalMs?: number, includeSnapshotOnFailure?: boolean, match?: 'present'|'absent', stability_ms?: number, observationDelayMs?: number, platform?: 'android' | 'ios', deviceId?: string }) {
+    // Backwards-compatible wrapper that delegates to the core waitForUICore implementation
+    return await ToolsInteract.waitForUICore({ type, query, timeoutMs, pollIntervalMs, includeSnapshotOnFailure, match, stability_ms, observationDelayMs, platform, deviceId })
+  }
+
   static async waitForScreenChangeHandler({ platform, previousFingerprint, timeoutMs = 5000, pollIntervalMs = 300, deviceId }: { platform?: 'android' | 'ios', previousFingerprint: string, timeoutMs?: number, pollIntervalMs?: number, deviceId?: string }) {
     const start = Date.now()
     let lastFingerprint: string | null = null
@@ -261,7 +260,7 @@ export class ToolsInteract {
     return { success: false, reason: 'timeout', lastFingerprint, elapsedMs: Date.now() - start }
   }
 
-  static async observeUntilHandler({ type = 'ui', query, timeoutMs = 30000, pollIntervalMs = 300, includeSnapshotOnFailure = true, match = 'present', stability_ms = 700, observationDelayMs = 0, platform, deviceId }: { type?: 'ui' | 'log' | 'screen' | 'idle', query?: string, timeoutMs?: number, pollIntervalMs?: number, includeSnapshotOnFailure?: boolean, match?: 'present'|'absent', stability_ms?: number, observationDelayMs?: number, platform?: 'android' | 'ios', deviceId?: string }) {
+  static async waitForUICore({ type = 'ui', query, timeoutMs = 30000, pollIntervalMs = 300, includeSnapshotOnFailure = true, match = 'present', stability_ms = 700, observationDelayMs = 0, platform, deviceId }: { type?: 'ui' | 'log' | 'screen' | 'idle', query?: string, timeoutMs?: number, pollIntervalMs?: number, includeSnapshotOnFailure?: boolean, match?: 'present'|'absent', stability_ms?: number, observationDelayMs?: number, platform?: 'android' | 'ios', deviceId?: string }) {
     const start = Date.now()
     const deadline = start + (timeoutMs || 0)
     const q = (query === null || query === undefined) ? '' : String(query)
@@ -283,7 +282,7 @@ export class ToolsInteract {
         baselineLastLine = logsArr.length ? logsArr[logsArr.length - 1] : null
       }
     } catch (err) {
-      try { console.warn('observeUntil: failed to get baseline data (non-fatal):', err instanceof Error ? err.message : String(err)) } catch { }
+      try { console.warn('waitForUI: failed to get baseline data (non-fatal):', err instanceof Error ? err.message : String(err)) } catch { }
     }
 
     // Network-based waiting removed. Rely on UI and screen fingerprints for determinism.
@@ -294,7 +293,7 @@ export class ToolsInteract {
 
     // Optional initial observation delay requested by caller
     if (typeof observationDelayMs === 'number' && observationDelayMs > 0) {
-      try { console.log(`observeUntil: delaying observation for ${observationDelayMs}ms`) } catch { }
+      try { console.log(`waitForUI: delaying observation for ${observationDelayMs}ms`) } catch { }
       await sleep(observationDelayMs)
     }
 
@@ -311,40 +310,29 @@ export class ToolsInteract {
         // Evaluate condition per type
         if (type === 'ui') {
           try {
-                // Lightweight UI check: fetch UI tree and perform a normalized substring match to reduce overhead
-            try {
-              // Bound the UI tree fetch to avoid long blocking calls; prefer quick failure over hanging a poll
-              const withTimeout = (p: Promise<any>, ms: number) => Promise.race([p, new Promise(resolve => setTimeout(()=>resolve(null), ms))])
-              const tree = await withTimeout(ToolsObserve.getUITreeHandler({ platform, deviceId }), Math.min(pollInterval, 500)) as any
-              const elems = Array.isArray(tree && tree.elements) ? tree.elements : []
-              const qnorm = q.toLowerCase()
-              let matched: any = null
-              for (const el of elems) {
-                try {
-                  const txt = ((el && (el.text || el.label || el.value || el.contentDescription || el.accessibilityLabel)) || '')
-                  if (!txt) continue
-                  if (String(txt).toLowerCase().includes(qnorm)) { matched = el; break }
-                } catch { continue }
-              }
-              const isPresent = !!matched
-              const conditionTrue = (match === 'present') ? isPresent : !isPresent
-              if (conditionTrue) {
-                if (matchedAt === null) matchedAt = Date.now()
-                stableDuration = Date.now() - (matchedAt as number)
-                lastObservedState = true
-                if (stableDuration >= stability_ms) {
-                  matchSource = 'ui-tree-' + (match === 'present' ? 'present' : 'absent')
-                  const element = isPresent ? matched : null
-                  const now2 = Date.now()
-                  return { success: true, condition: match, query: q, poll_count: pollCount, duration_ms: now2 - start, stable_duration_ms: stableDuration, matchedElement: element, matchSource, timestamp: now2, type: 'ui', observed_state: lastObservedState ?? null }
+              // Prefer using the public findElementHandler which tests can override. This avoids relying
+              // on resolveObserve/getUITree for unit tests which may not have devices available.
+              try {
+                const findRes = await (ToolsInteract as any).findElementHandler({ query: q, exact: false, timeoutMs: Math.min(500, pollInterval), platform, deviceId })
+                const isPresent = !!(findRes && (findRes as any).found)
+                const conditionTrue = (match === 'present') ? isPresent : !isPresent
+                if (conditionTrue) {
+                  if (matchedAt === null) matchedAt = Date.now()
+                  stableDuration = Date.now() - (matchedAt as number)
+                  lastObservedState = true
+                  if (stableDuration >= stability_ms) {
+                    matchSource = 'ui-find'
+                    const element = isPresent ? (findRes as any).element : null
+                    const now2 = Date.now()
+                    return { success: true, condition: match, query: q, poll_count: pollCount, duration_ms: now2 - start, stable_duration_ms: stableDuration, matchedElement: element, matchSource, timestamp: now2, type: 'ui', observed_state: lastObservedState ?? null }
+                  }
+                } else {
+                  matchedAt = null
+                  stableDuration = 0
+                  lastObservedState = false
                 }
-              } else {
-                matchedAt = null
-                stableDuration = 0
-                lastObservedState = false
-              }
-            } catch (err) { console.error('observeUntil(ui) tree error:', err) }
-          } catch (err) { console.error('observeUntil(ui) find error:', err) }
+              } catch (err) { console.error('waitForUI(ui) find error:', err) }
+            } catch (err) { console.error('waitForUI(ui) outer error:', err) }
         } else if (type === 'log') {
           try {
             // Logs: presence semantics only (match 'present'). Stability not applicable (immediate)
@@ -372,7 +360,7 @@ export class ToolsInteract {
                 return { success: true, condition: 'present', query: q, poll_count: pollCount, duration_ms: now2 - start, stable_duration_ms: 0, matchedLog: { message: line }, matchSource: 'log-snapshot', timestamp: now2, type: 'log', observed_state: true }
               }
             }
-          } catch (err) { console.error('observeUntil(log) error:', err) }
+          } catch (err) { console.error('waitForUI(log) error:', err) }
         } else if (type === 'screen') {
           try {
             const fpRes = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
@@ -394,7 +382,7 @@ export class ToolsInteract {
                 lastObservedState = false
               }
             }
-          } catch (err) { console.error('observeUntil(screen) error:', err) }
+          } catch (err) { console.error('waitForUI(screen) error:', err) }
         } else if (type === 'idle') {
           try {
             const fpRes = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
@@ -413,7 +401,7 @@ export class ToolsInteract {
                 return { success: true, condition: 'present', query: q, poll_count: pollCount, duration_ms: now2 - start, stable_duration_ms: idleMs, matchSource: 'idle-stable', timestamp: now2, type: 'idle', observed_state: lastObservedState ?? null }
               }
             }
-          } catch (err) { console.error('observeUntil(idle) error:', err) }
+          } catch (err) { console.error('waitForUI(idle) error:', err) }
         }
 
       // Respect poll interval and avoid tight loop
@@ -424,7 +412,11 @@ export class ToolsInteract {
     let snapshot: any = null
     if (includeSnapshotOnFailure) {
       try {
-        snapshot = await ToolsObserve.captureDebugSnapshotHandler({ reason: `observe_until timeout for ${type}`, includeLogs: true, platform, deviceId })
+        // Use dynamic import to avoid circular-initialization issues where the ToolsObserve
+        // binding captured earlier may not reflect test-time overrides. Importing at call
+        // time ensures the latest exported ToolsObserve object is used.
+        const Obs = await import('../observe/index.js')
+        snapshot = await (Obs as any).ToolsObserve.captureDebugSnapshotHandler({ reason: `wait_for_ui timeout for ${type}`, includeLogs: true, platform, deviceId })
       } catch (err) {
         snapshot = { error: err instanceof Error ? err.message : String(err) }
       }
