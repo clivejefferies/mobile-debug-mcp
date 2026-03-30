@@ -6,6 +6,7 @@ import { createWriteStream, promises as fsPromises } from 'fs'
 import path from 'path'
 import { parseLogLine } from '../utils/android/utils.js'
 import { computeScreenFingerprint } from '../utils/ui/index.js'
+import { parsePngSize } from '../utils/image.js'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -147,21 +148,6 @@ export class iOSObserve {
       const buffer = await fs.readFile(tmpFile)
       const base64 = buffer.toString('base64')
 
-      // Attempt to parse PNG dimensions from the file to return a usable resolution
-      function parsePngSize(buf: Buffer): { width: number, height: number } {
-        try {
-          if (!buf || buf.length < 24) return { width: 0, height: 0 }
-          if (buf.readUInt32BE(0) !== 0x89504e47 || buf.readUInt32BE(4) !== 0x0d0a1a0a) return { width: 0, height: 0 }
-          const ihdr = buf.toString('ascii', 12, 16)
-          if (ihdr !== 'IHDR') return { width: 0, height: 0 }
-          const width = buf.readUInt32BE(16)
-          const height = buf.readUInt32BE(20)
-          return { width, height }
-        } catch {
-          return { width: 0, height: 0 }
-        }
-      }
-
       const dims = parsePngSize(buffer)
 
       // Try to generate WebP (preferred) and JPEG fallback using sharp (in-process, cross-platform)
@@ -207,8 +193,8 @@ export class iOSObserve {
         if (jpegBuf) {
           return { device, screenshot: jpegBuf.toString('base64'), screenshot_mime: 'image/jpeg', resolution: { width: dims.width, height: dims.height } }
         }
-      } catch {
-        console.error('Screenshot conversion pipeline failed (iOS):', e instanceof Error ? e.message : String(e));
+      } catch (err) {
+        console.error('Screenshot conversion pipeline failed (iOS):', err instanceof Error ? err.message : String(err));
         // fall through to png fallback
       }
 

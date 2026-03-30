@@ -6,6 +6,7 @@ import { createWriteStream } from "fs"
 import { promises as fsPromises } from "fs"
 import path from "path"
 import { computeScreenFingerprint } from "../utils/ui/index.js"
+import { parsePngSize } from "../utils/image.js"
 
 const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
 
@@ -152,29 +153,12 @@ export class AndroidObserve {
         const screenshotBuffer = Buffer.concat(chunks)
         const screenshotBase64 = screenshotBuffer.toString('base64')
 
-        // Try to parse PNG dimensions from the screenshot buffer (fast, no deps)
-        function parsePngSize(buf: Buffer): { width: number, height: number } {
-          try {
-            if (!buf || buf.length < 24) return { width: 0, height: 0 }
-            // PNG header check
-            if (buf.readUInt32BE(0) !== 0x89504e47 || buf.readUInt32BE(4) !== 0x0d0a1a0a) return { width: 0, height: 0 }
-            // IHDR chunk should start at offset 12
-            const ihdr = buf.toString('ascii', 12, 16)
-            if (ihdr !== 'IHDR') return { width: 0, height: 0 }
-            const width = buf.readUInt32BE(16)
-            const height = buf.readUInt32BE(20)
-            return { width, height }
-          } catch {
-            return { width: 0, height: 0 }
-          }
-        }
-
-        const parsed = parsePngSize(Buffer.concat(chunks))
+        const parsed = parsePngSize(screenshotBuffer)
         if (parsed.width > 0 && parsed.height > 0) {
           // Attempt to convert to WebP (preferred) and provide JPEG fallback (awaited to avoid race)
           try {
             const sharpModule = await import('sharp'); const sharp = sharpModule && (sharpModule as any).default ? (sharpModule as any).default : sharpModule;
-            const buf = Buffer.concat(chunks);
+            const buf = screenshotBuffer;
             const img = sharp(buf);
             const meta = await img.metadata().catch((err: any) => { console.error('sharp.metadata failed (Android):', err); return {} as any });
             const hasAlpha = !!meta.hasAlpha || (meta.channels && meta.channels > 3);
