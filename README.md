@@ -2,8 +2,10 @@
 
 A minimal, secure MCP server for AI-assisted mobile development. Build, install, and inspect Android/iOS apps from an MCP-compatible client.
 
-> **Note:**
-> * iOS only tested on simulator.
+> **Support:**
+> * Android support
+> * iOS only tested on simulator
+> * KMP support
 > * Flutter iOS projects not fetching logs
 > * React native not tested
 
