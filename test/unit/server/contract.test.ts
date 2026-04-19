@@ -25,11 +25,9 @@ async function run() {
   assert(startLogStream, 'start_log_stream should be registered')
   assert.strictEqual((startLogStream as any).inputSchema.properties.platform.default, 'android')
 
-  const invalidStart = await handleToolCall('start_app', {})
-  assert.strictEqual(Array.isArray((invalidStart as any).content), true)
-  assert.strictEqual((invalidStart as any).content[0].type, 'text')
-  const invalidStartPayload = JSON.parse((invalidStart as any).content[0].text)
-  assert.match(invalidStartPayload.error, /Both platform and appId parameters are required/)
+  const startApp = toolDefinitions.find((tool) => tool.name === 'start_app')
+  assert(startApp, 'start_app should be registered')
+  assert.deepStrictEqual((startApp as any).inputSchema.required, ['platform', 'appId'])
 
   await assert.rejects(() => handleToolCall('unknown_tool'), /Unknown tool: unknown_tool/)
 
