@@ -4,6 +4,8 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## [0.21.5]
 - Fixed incorrect timeout
+- Added a portable `test-authoring` skill package and documented the repository's vendor-neutral skill format
+- Added `AGENTS.md` as a top-level cold-start guide for autonomous agents entering the public repository
 
 ## [0.21.4]
 - updated `wait_for_ui` with better contract and observability

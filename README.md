@@ -45,12 +45,20 @@ Feature building:
 
 - Tools: [Tools](docs/tools/TOOLS.md) — full input/response examples
 - Changelog: [Changelog](docs/CHANGELOG.md)
+- Agents: [AGENTS.md](AGENTS.md) — cold-start guidance for autonomous agents entering the public repo
+- Skills: [skills/README.md](skills/README.md) — portable Markdown skill packages for agents such as Copilot, Codex, Claude, or custom systems
 
 ## Testing
 
 - `npm run test:unit` runs every automated unit test under `test/unit/...`
 - `npm run test:device` runs the automated device smoke checks under `test/device/automated/...`
 - Manual and debug-oriented device scripts live under `test/device/manual/...` and are not part of the default test commands
+
+## Agent skills
+
+- `skills/mcp-builder/` contains reusable build/install guidance for agents
+- `skills/test-authoring/` contains reusable test-creation guidance aligned to this repo's current test structure
+- Skills are written as plain Markdown packages so they can be consumed by different agent systems rather than one vendor-specific runtime
 
 ## License
 
