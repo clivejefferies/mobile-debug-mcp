@@ -3,7 +3,9 @@ import path from 'path'
 import { spawn } from 'child_process'
 import { fileURLToPath } from 'url'
 
-const unitRoot = fileURLToPath(new URL('.', import.meta.url))
+const deviceRoot = fileURLToPath(new URL('.', import.meta.url))
+const automatedRoot = fileURLToPath(new URL('./automated', import.meta.url))
+const runnableSuffixes = ['.test.ts', '.smoke.ts', '.integration.ts']
 
 async function collectFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true })
@@ -17,8 +19,8 @@ async function collectFiles(dir: string): Promise<string[]> {
 }
 
 async function runFile(file: string): Promise<void> {
-  const relativePath = path.relative(unitRoot, file).replaceAll(path.sep, '/')
-  console.log(`Running unit test: ${relativePath}`)
+  const relativePath = path.relative(deviceRoot, file).replaceAll(path.sep, '/')
+  console.log(`Running device test: ${relativePath}`)
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn('tsx', [file], { stdio: 'inherit' })
@@ -29,21 +31,21 @@ async function runFile(file: string): Promise<void> {
         return
       }
 
-      reject(new Error(`Unit test failed: ${relativePath} (exit code ${code ?? 'unknown'})`))
+      reject(new Error(`Device test failed: ${relativePath} (exit code ${code ?? 'unknown'})`))
     })
   })
 }
 
 (async function () {
-  const allFiles = (await collectFiles(unitRoot))
-    .filter((file) => file.endsWith('.test.ts') && path.basename(file) !== 'index.ts')
+  const allFiles = (await collectFiles(automatedRoot))
+    .filter((file) => runnableSuffixes.some((suffix) => file.endsWith(suffix)))
     .sort()
 
   for (const file of allFiles) {
     await runFile(file)
   }
 
-  console.log('Unit tests loaded.')
+  console.log('Device tests loaded.')
 })().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error))
   process.exit(1)

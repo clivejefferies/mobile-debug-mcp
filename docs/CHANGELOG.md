@@ -4,6 +4,8 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## [0.21.5]
 - Fixed incorrect timeout
+- Added a portable `test-authoring` skill package and documented the repository's vendor-neutral skill format
+- Added `AGENTS.md` as a top-level cold-start guide for autonomous agents entering the public repository
 
 ## [0.21.4]
 - updated `wait_for_ui` with better contract and observability
@@ -52,7 +54,7 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## [0.16.0]
 - Added `wait_for_screen_change` interact tool: polls the platform-specific `get_screen_fingerprint` until it differs from a provided `previousFingerprint`, with configurable `timeoutMs` and `pollIntervalMs` and an optional stability confirmation poll to avoid reacting to transient UI flickers. Implemented at the interact layer and delegates fingerprinting to the observe implementations (Android/iOS).
-- Added unit tests covering immediate change, transient null fingerprints, stability confirmation and timeout behavior: `test/interact/unit/wait_for_screen_change.test.ts`.
+- Added unit tests covering immediate change, transient null fingerprints, stability confirmation and timeout behavior: `test/unit/interact/wait_for_screen_change.test.ts`.
 
 ## [0.15.0]
 - Reorganised repository for cohesion: merged tool handlers into feature entrypoints (src/observe, src/interact, src/manage) and moved platform helpers and CLI tooling into src/utils/{android,ios,cli}.
