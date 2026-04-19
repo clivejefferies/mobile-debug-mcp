@@ -18,14 +18,30 @@ function parseNumericVersion(v: string): number {
   return major + minor / 100
 }
 
+let androidDeviceLister = listAndroidDevices
+let iosDeviceLister = listIOSDevices
+
+export function _setDeviceListersForTests(overrides: {
+  listAndroidDevices?: typeof listAndroidDevices
+  listIOSDevices?: typeof listIOSDevices
+}) {
+  if (overrides.listAndroidDevices) androidDeviceLister = overrides.listAndroidDevices
+  if (overrides.listIOSDevices) iosDeviceLister = overrides.listIOSDevices
+}
+
+export function _resetDeviceListersForTests() {
+  androidDeviceLister = listAndroidDevices
+  iosDeviceLister = listIOSDevices
+}
+
 export async function listDevices(platform?: "android" | "ios", appId?: string): Promise<DeviceInfo[]> {
   if (!platform || platform === "android") {
-    const android = await listAndroidDevices(appId)
+    const android = await androidDeviceLister(appId)
     if (platform === "android") return android
-    const ios = await listIOSDevices(appId)
+    const ios = await iosDeviceLister(appId)
     return [...android, ...ios]
   }
-  return listIOSDevices(appId)
+  return iosDeviceLister(appId)
 }
 
 export async function resolveTargetDevice(opts: ResolveOptions): Promise<DeviceInfo> {
