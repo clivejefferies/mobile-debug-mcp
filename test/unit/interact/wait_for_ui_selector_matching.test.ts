@@ -35,7 +35,19 @@ async function run() {
     assert.ok(ok4, 'Clickable element should satisfy clickable condition')
     console.log('Clickable match:', ok4 ? 'PASS' : 'FAIL', JSON.stringify(r4, null, 2))
 
-    // Test 5: retry behavior - first attempt times out, second attempt succeeds
+    // Test 5: clickable condition should resolve a clickable parent for matching text
+    ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({
+      elements: [
+        { bounds: [100, 100, 300, 220], visible: true, clickable: true, enabled: true, children: [1] },
+        { text: 'Play session', bounds: [140, 130, 260, 180], visible: true, clickable: false, enabled: true, parentId: 0 }
+      ]
+    })
+    const r5 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Play Session', contains: true }, condition: 'clickable', timeout_ms: 1000, poll_interval_ms: 50, platform: 'android' })
+    const ok5 = r5 && r5.status === 'success' && r5.element && r5.element.index === 0
+    assert.ok(ok5, 'Clickable parent should satisfy clickable condition for child label text')
+    console.log('Clickable parent resolution:', ok5 ? 'PASS' : 'FAIL', JSON.stringify(r5, null, 2))
+
+    // Test 6: retry behavior - first attempt times out, second attempt succeeds
     const start = Date.now()
     let seqTree = async () => {
       const now = Date.now()
@@ -44,17 +56,17 @@ async function run() {
       return { elements: [ { text: 'Retried', resourceId: 'rid5', bounds: [0,0,10,10], visible: true } ] }
     }
     ;(Observe as any).ToolsObserve.getUITreeHandler = seqTree
-    const r5 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Retried' }, condition: 'exists', timeout_ms: 200, poll_interval_ms: 50, match: undefined, retry: { max_attempts: 3, backoff_ms: 150 }, platform: 'android' })
-    const ok5 = r5 && r5.status === 'success' && r5.metrics && r5.metrics.attempts >= 2
-    assert.ok(ok5, 'Retry path should eventually succeed')
-    console.log('Retry behavior:', ok5 ? 'PASS' : 'FAIL', JSON.stringify(r5, null, 2))
+    const r6 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Retried' }, condition: 'exists', timeout_ms: 200, poll_interval_ms: 50, match: undefined, retry: { max_attempts: 3, backoff_ms: 150 }, platform: 'android' })
+    const ok6 = r6 && r6.status === 'success' && r6.metrics && r6.metrics.attempts >= 2
+    assert.ok(ok6, 'Retry path should eventually succeed')
+    console.log('Retry behavior:', ok6 ? 'PASS' : 'FAIL', JSON.stringify(r6, null, 2))
 
-    // Test 6: timeout with no selector match -> correct error code
+    // Test 7: timeout with no selector match -> correct error code
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({ elements: [] })
-    const r6 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Nope' }, condition: 'exists', timeout_ms: 300, poll_interval_ms: 50, retry: { max_attempts: 1 }, platform: 'android' })
-    const ok6 = r6 && r6.status === 'timeout' && r6.error && r6.error.code === 'ELEMENT_NOT_FOUND'
-    assert.ok(ok6, 'Missing selector should time out with ELEMENT_NOT_FOUND')
-    console.log('Timeout no match:', ok6 ? 'PASS' : 'FAIL', JSON.stringify(r6, null, 2))
+    const r7 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Nope' }, condition: 'exists', timeout_ms: 300, poll_interval_ms: 50, retry: { max_attempts: 1 }, platform: 'android' })
+    const ok7 = r7 && r7.status === 'timeout' && r7.error && r7.error.code === 'ELEMENT_NOT_FOUND'
+    assert.ok(ok7, 'Missing selector should time out with ELEMENT_NOT_FOUND')
+    console.log('Timeout no match:', ok7 ? 'PASS' : 'FAIL', JSON.stringify(r7, null, 2))
 
   } finally {
     ;(Observe as any).ToolsObserve.getUITreeHandler = origGetUITree

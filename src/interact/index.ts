@@ -95,6 +95,60 @@ export class ToolsInteract {
     }
   }
 
+  private static _resolveActionableAncestor(elements: UiElement[], chosen: { el: UiElement, idx: number } | null): { el: UiElement, idx: number } | null {
+    if (!chosen) return null
+    if (chosen.el.clickable || chosen.el.focusable) return chosen
+
+    let current = chosen
+    let safety = 0
+
+    while (safety < 20 && current.el && !(current.el.clickable || current.el.focusable) && current.el.parentId !== undefined && current.el.parentId !== null) {
+      const parentId = current.el.parentId
+      let parentIndex: number | null = null
+
+      if (typeof parentId === 'number') parentIndex = parentId
+      else if (typeof parentId === 'string' && /^\d+$/.test(parentId)) parentIndex = Number(parentId)
+
+      if (parentIndex !== null && elements[parentIndex]) {
+        current = { el: elements[parentIndex], idx: parentIndex }
+        if (current.el.clickable || current.el.focusable) return current
+      } else if (typeof parentId === 'string') {
+        const foundIndex = elements.findIndex((el) => el.resourceId === parentId || el.id === parentId)
+        if (foundIndex === -1) break
+        current = { el: elements[foundIndex], idx: foundIndex }
+        if (current.el.clickable || current.el.focusable) return current
+      } else {
+        break
+      }
+
+      safety++
+    }
+
+    const childBounds = ToolsInteract._normalizeBounds(chosen.el.bounds)
+    if (!childBounds) return null
+    const [cl, ct, cr, cb] = childBounds
+
+    let best: { el: UiElement, idx: number } | null = null
+    let bestArea = Infinity
+
+    for (let i = 0; i < elements.length; i++) {
+      const el = elements[i]
+      if (!el || !(el.clickable || el.focusable)) continue
+      const bounds = ToolsInteract._normalizeBounds(el.bounds)
+      if (!bounds) continue
+      const [pl, pt, pr, pb] = bounds
+      if (pl <= cl && pt <= ct && pr >= cr && pb >= cb) {
+        const area = (pr - pl) * (pb - pt)
+        if (area < bestArea) {
+          bestArea = area
+          best = { el, idx: i }
+        }
+      }
+    }
+
+    return best
+  }
+
 
   private static async getInteractionService(platform?: 'android' | 'ios', deviceId?: string) {
     const effectivePlatform = platform || 'android'
@@ -488,6 +542,7 @@ export class ToolsInteract {
             }
 
             let conditionMet = false
+            let matchedElement = chosen
             if (condition === 'exists') {
               // when an index is specified, existence requires that specific index be present
               conditionMet = (pickIndex !== undefined) ? (chosen !== null) : (matchedCount >= 1)
@@ -501,11 +556,12 @@ export class ToolsInteract {
                 conditionMet = visibleFlag
               } else conditionMet = false
             } else if (condition === 'clickable') {
-              if (chosen) {
-                const b = chosen.el.bounds
-                const visibleFlag = !!chosen.el.visible && Array.isArray(b) && b.length >= 4 && (b[2] > b[0] && b[3] > b[1])
-                const enabled = !!chosen.el.enabled
-                const clickable = !!chosen.el.clickable || !!chosen.el._interactable
+              matchedElement = chosen ? (ToolsInteract._resolveActionableAncestor(elements, chosen as { el: UiElement, idx: number }) || chosen) : null
+              if (matchedElement) {
+                const b = matchedElement.el.bounds
+                const visibleFlag = !!matchedElement.el.visible && Array.isArray(b) && b.length >= 4 && (b[2] > b[0] && b[3] > b[1])
+                const enabled = !!matchedElement.el.enabled
+                const clickable = !!matchedElement.el.clickable || !!matchedElement.el._interactable || !!matchedElement.el.focusable
                 conditionMet = visibleFlag && enabled && clickable
               } else conditionMet = false
             }
@@ -516,7 +572,7 @@ export class ToolsInteract {
               // Build element output per spec
               const resolvedPlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
               const resolvedDeviceId = tree?.device?.id || deviceId
-              const outEl = chosen ? ToolsInteract._buildResolvedElement(resolvedPlatform, resolvedDeviceId, chosen.el, chosen.idx) : null
+              const outEl = matchedElement ? ToolsInteract._buildResolvedElement(resolvedPlatform, resolvedDeviceId, matchedElement.el, matchedElement.idx) : null
 
               return {
                 status: 'success',
