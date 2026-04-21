@@ -2,6 +2,8 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.24.0]
+
 ## [0.23.0]
 - Added network monitoring
 - Added 

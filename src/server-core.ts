@@ -328,6 +328,94 @@ export const toolDefinitions = [
     }
   },
   {
+    name: 'expect_screen',
+    description: `Purpose:
+Verify the current screen deterministically using either an expected screen fingerprint or an expected screen identifier.
+
+Inputs:
+- fingerprint: preferred exact-match screen fingerprint
+- screen: exact screen identifier fallback when a fingerprint is not available
+
+Output Structure:
+- success: true when the expected screen matches the observed screen
+- observed_screen: current fingerprint and screen identifier
+- expected_screen: the expected fingerprint and/or screen identifier
+- confidence: 1 for an exact match, otherwise 0
+
+Recommended Usage:
+1. Resolve the target element or screen state
+2. Call an action tool such as tap_element
+3. Call expect_screen when navigation is expected
+4. If success=false, treat the outcome as unverified and follow the action tool retry guidance
+
+Verification Guidance:
+- Prefer fingerprint whenever you have one
+- Use screen only as a fallback exact match against known identifiers
+
+Failure Handling:
+- success=false means the expected screen was not reached; retry or recover using the action tool's failure strategy`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        platform: { type: 'string', enum: ['android', 'ios'], description: 'Optional platform override (android|ios)' },
+        fingerprint: { type: 'string', description: 'Expected screen fingerprint. Preferred verification mechanism.' },
+        screen: { type: 'string', description: 'Expected exact screen identifier when no fingerprint is available.' },
+        deviceId: { type: 'string', description: 'Optional device id/udid to target' }
+      }
+    }
+  },
+  {
+    name: 'expect_element_visible',
+    description: `Purpose:
+Verify deterministically that a target element is visible after an action.
+
+Inputs:
+- selector: required selector used to resolve the target element
+- element_id: optional previously resolved element identifier used only as context
+
+Output Structure:
+- success: true when the element is visible
+- selector: selector used for verification
+- element_id: resolved element identifier when available
+- element: minimal resolved element info when visible
+- failure_code: TIMEOUT or UNKNOWN when verification fails
+- retryable: true when failure_code=TIMEOUT
+
+Recommended Usage:
+1. Resolve the target element
+2. Call an action tool such as tap_element
+3. Call expect_element_visible when a local UI change is expected
+4. If success=false, follow the action tool retry guidance
+
+Verification Guidance:
+- Use this when the screen should stay the same but the UI should reveal or update a specific element
+- Prefer exact selectors when possible
+
+Failure Handling:
+- TIMEOUT → retry verification once or retry the action after re-resolving
+- UNKNOWN → capture a snapshot and stop`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+            resource_id: { type: 'string' },
+            accessibility_id: { type: 'string' },
+            contains: { type: 'boolean', default: false }
+          }
+        },
+        element_id: { type: 'string', description: 'Optional previously resolved element identifier.' },
+        timeout_ms: { type: 'number', default: 5000 },
+        poll_interval_ms: { type: 'number', default: 300 },
+        platform: { type: 'string', enum: ['android', 'ios'], description: 'Optional platform override' },
+        deviceId: { type: 'string', description: 'Optional device serial/udid' }
+      },
+      required: ['selector']
+    }
+  },
+  {
     name: 'wait_for_ui',
     description: 'Deterministic UI wait primitive. Waits for selector condition with retries and backoff.',
     inputSchema: {
@@ -396,7 +484,42 @@ export const toolDefinitions = [
   },
   {
     name: 'tap_element',
-    description: 'Tap a previously resolved UI element using its elementId.',
+    description: `Purpose:
+Tap a previously resolved UI element using its elementId.
+
+Inputs:
+- elementId: a resolved UI element identifier returned by wait_for_ui
+
+Output Structure:
+- action_id: unique timestamp-based action identifier
+- timestamp: epoch milliseconds for the action attempt
+- action_type: "tap_element"
+- target.selector: original target handle ({ elementId })
+- target.resolved: minimal resolved element info used for the tap
+- success: true when the tap was dispatched
+- failure_code: present when success=false
+- retryable: present when failure_code exists
+- ui_fingerprint_before/ui_fingerprint_after: optional fingerprints captured around the action
+
+Recommended Usage:
+1. Resolve the target with wait_for_ui or another deterministic resolver
+2. Call tap_element
+3. Verify outcome:
+   - use expect_screen when navigation is expected
+   - use expect_element_visible when the UI change is local
+4. If verification fails, inspect failure_code and follow the retry strategy below
+
+Verification Guidance:
+- Prefer expect_screen for navigation or modal transitions
+- Prefer expect_element_visible when the tap should reveal or update a specific element
+- Do not treat tap_element.success as outcome success; it only means the tap was executed
+
+Failure Handling:
+- STALE_REFERENCE → re-resolve the element, then retry
+- ELEMENT_NOT_INTERACTABLE → wait or refine the target, then retry
+- UNKNOWN → capture a snapshot and stop
+
+This tool reports execution success only. Verification must be done with a separate expect_* tool.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -722,6 +845,18 @@ async function handleWaitForScreenChange(args: ToolCallArgs) {
   return wrapResponse(res)
 }
 
+async function handleExpectScreen(args: ToolCallArgs) {
+  const { platform, fingerprint, screen, deviceId } = args as any
+  const res = await ToolsInteract.expectScreenHandler({ platform, fingerprint, screen, deviceId })
+  return wrapResponse(res)
+}
+
+async function handleExpectElementVisible(args: ToolCallArgs) {
+  const { selector, element_id, timeout_ms, poll_interval_ms, platform, deviceId } = args as any
+  const res = await ToolsInteract.expectElementVisibleHandler({ selector, element_id, timeout_ms, poll_interval_ms, platform, deviceId })
+  return wrapResponse(res)
+}
+
 async function handleWaitForUI(args: ToolCallArgs) {
   const { selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry, platform, deviceId } = args as any
   const res = await ToolsInteract.waitForUIHandler({ selector, condition, timeout_ms, poll_interval_ms, match, retry, platform, deviceId })
@@ -828,6 +963,8 @@ const toolHandlers: Record<string, ToolHandler> = {
   get_current_screen: handleGetCurrentScreen,
   get_screen_fingerprint: handleGetScreenFingerprint,
   wait_for_screen_change: handleWaitForScreenChange,
+  expect_screen: handleExpectScreen,
+  expect_element_visible: handleExpectElementVisible,
   wait_for_ui: handleWaitForUI,
   find_element: handleFindElement,
   tap: handleTap,

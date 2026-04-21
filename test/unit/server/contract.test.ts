@@ -8,6 +8,8 @@ async function run() {
   assert.strictEqual(serverInfo.name, 'mobile-debug-mcp')
   assert.strictEqual(names.length, uniqueNames.size, 'tool names should be unique')
   assert(names.includes('wait_for_ui'))
+  assert(names.includes('expect_screen'))
+  assert(names.includes('expect_element_visible'))
   assert(names.includes('capture_screenshot'))
   assert(names.includes('get_ui_tree'))
   assert(names.includes('tap_element'))
@@ -33,6 +35,10 @@ async function run() {
   const tapElement = toolDefinitions.find((tool) => tool.name === 'tap_element')
   assert(tapElement, 'tap_element should be registered')
   assert.deepStrictEqual((tapElement as any).inputSchema.required, ['elementId'])
+
+  const expectElementVisible = toolDefinitions.find((tool) => tool.name === 'expect_element_visible')
+  assert(expectElementVisible, 'expect_element_visible should be registered')
+  assert.deepStrictEqual((expectElementVisible as any).inputSchema.required, ['selector'])
 
   await assert.rejects(() => handleToolCall('unknown_tool'), /Unknown tool: unknown_tool/)
 
