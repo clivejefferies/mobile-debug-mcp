@@ -32,13 +32,13 @@ async function handleStartApp(args: ToolCallArgs) {
     success: !!res.appStarted,
     uiFingerprintBefore,
     uiFingerprintAfter,
-    failure: res.appStarted ? undefined : inferGenericFailure((res as any).error),
+    failure: res.appStarted ? undefined : inferGenericFailure(res.error),
     details: {
       launch_time_ms: res.launchTimeMs,
-      ...(typeof (res as any).output === 'string' ? { output: (res as any).output } : {}),
+      ...(typeof res.output === 'string' ? { output: res.output } : {}),
       ...(res.device ? { device_id: res.device.id } : {}),
-      ...(typeof (res as any).error === 'string' ? { error: (res as any).error } : {}),
-      ...((res as any).observedApp ? { observed_app: (res as any).observedApp } : {})
+      ...(typeof res.error === 'string' ? { error: res.error } : {}),
+      ...(res.observedApp ? { observed_app: res.observedApp } : {})
     }
   }))
 }
@@ -63,14 +63,14 @@ async function handleRestartApp(args: ToolCallArgs) {
     success: !!res.appRestarted,
     uiFingerprintBefore,
     uiFingerprintAfter,
-    failure: res.appRestarted ? undefined : inferGenericFailure((res as any).error),
+    failure: res.appRestarted ? undefined : inferGenericFailure(res.error),
     details: {
       launch_time_ms: res.launchTimeMs,
-      ...(typeof (res as any).output === 'string' ? { output: (res as any).output } : {}),
-      ...(typeof (res as any).terminatedBeforeRestart === 'boolean' ? { terminated_before_restart: (res as any).terminatedBeforeRestart } : {}),
-      ...(typeof (res as any).terminateError === 'string' ? { terminate_error: (res as any).terminateError } : {}),
-      ...(typeof (res as any).error === 'string' ? { error: (res as any).error } : {}),
-      ...((res as any).observedApp ? { observed_app: (res as any).observedApp } : {})
+      ...(typeof res.output === 'string' ? { output: res.output } : {}),
+      ...(typeof res.terminatedBeforeRestart === 'boolean' ? { terminated_before_restart: res.terminatedBeforeRestart } : {}),
+      ...(typeof res.terminateError === 'string' ? { terminate_error: res.terminateError } : {}),
+      ...(typeof res.error === 'string' ? { error: res.error } : {}),
+      ...(res.observedApp ? { observed_app: res.observedApp } : {})
     }
   }))
 }

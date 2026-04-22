@@ -511,18 +511,18 @@ export class ToolsInteract {
         },
         metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 },
         requested,
-        observed: { matched_count: 0, condition_satisfied: false, selected_index: requestedIndex, last_matched_element: null }
+        observed: { matched_count: 0, condition_satisfied: false, selected_index: null, last_matched_element: null }
       };
     }
 
     // Validate condition
     if (!['exists','not_exists','visible','clickable'].includes(condition)) {
-      return { status: 'timeout', error: { code: 'INVALID_CONDITION', message: `Unsupported condition: ${condition}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 }, requested, observed: { matched_count: 0, condition_satisfied: false, selected_index: requestedIndex, last_matched_element: null } }
+      return { status: 'timeout', error: { code: 'INVALID_CONDITION', message: `Unsupported condition: ${condition}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 }, requested, observed: { matched_count: 0, condition_satisfied: false, selected_index: null, last_matched_element: null } }
     }
 
     // Platform check
     if (platform && !['android','ios'].includes(platform)) {
-      return { status: 'timeout', error: { code: 'PLATFORM_NOT_SUPPORTED', message: `Unsupported platform: ${platform}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 }, requested, observed: { matched_count: 0, condition_satisfied: false, selected_index: requestedIndex, last_matched_element: null } }
+      return { status: 'timeout', error: { code: 'PLATFORM_NOT_SUPPORTED', message: `Unsupported platform: ${platform}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 }, requested, observed: { matched_count: 0, condition_satisfied: false, selected_index: null, last_matched_element: null } }
     }
 
     const effectivePoll = Math.max(50, Math.min(poll_interval_ms || 300, 2000))
@@ -654,7 +654,7 @@ export class ToolsInteract {
                 observed: {
                   matched_count: matchedCount,
                   condition_satisfied: true,
-                  selected_index: outEl?.index ?? requestedIndex,
+                  selected_index: outEl?.index ?? null,
                   last_matched_element: outEl
                 }
               }
@@ -680,7 +680,7 @@ export class ToolsInteract {
         const observed = {
           matched_count: lastMatchedCount,
           condition_satisfied: lastConditionSatisfied,
-          selected_index: lastMatchedElement?.index ?? requestedIndex,
+          selected_index: lastMatchedElement?.index ?? null,
           last_matched_element: lastMatchedElement
         }
         const matchNote = requestedIndex !== null && lastMatchedCount <= requestedIndex
@@ -705,7 +705,7 @@ export class ToolsInteract {
         observed: {
           matched_count: lastMatchedCount,
           condition_satisfied: false,
-          selected_index: lastMatchedElement?.index ?? requestedIndex,
+          selected_index: lastMatchedElement?.index ?? null,
           last_matched_element: lastMatchedElement
         }
       }
