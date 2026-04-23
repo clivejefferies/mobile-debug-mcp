@@ -837,6 +837,7 @@ Failure Handling:
 
 MUST be called after every action (tap, swipe, type_text, press_back, start_app, etc). Never skip.
 Use this with get_network_activity when the expected outcome is backend/API activity without a visible UI change.
+For backend/API activity, compare get_screen_fingerprint before and after the action and call get_network_activity immediately after the action instead of waiting for wait_for_screen_change.
 
 HOW TO GATHER INPUTS before calling:
 1. Call wait_for_screen_change or compare get_screen_fingerprint before/after — set uiChanged accordingly.
@@ -892,7 +893,7 @@ BEHAVIOUR after outcome:
     name: 'get_network_activity',
     description: `Returns structured network events captured from platform logs since the last action.
 
-Call this only when classify_action_outcome returns nextAction="call_get_network_activity" or when the expected outcome is backend/API activity without a visible UI change.
+Call this when classify_action_outcome returns nextAction="call_get_network_activity" or immediately after an action whose expected outcome is backend/API activity without a visible UI change.
 Do not call more than once per action.
 
 Events are filtered to significant (non-background) requests only.

@@ -56,6 +56,7 @@ Preferred verification:
 - backend/API activity expected -> `classify_action_outcome` + `get_network_activity`
 
 Use `wait_for_screen_change` only when a visible transition is the expected outcome. If a button should trigger an API request but the screen should stay the same, rely on network activity and classification instead.
+For backend-only actions, prefer comparing `get_screen_fingerprint` before/after and call `get_network_activity` immediately after the action; do not wait on `wait_for_screen_change` if no visible transition is expected.
 
 ---
 

@@ -40,7 +40,7 @@ Outcome-specific guidance:
 
 - visible navigation expected -> `wait_for_screen_change` (optional) -> `expect_screen`
 - local UI change expected -> `wait_for_ui` (optional) -> `expect_element_visible`
-- backend/API activity expected without a visible UI change -> `classify_action_outcome` + `get_network_activity`
+- backend/API activity expected without a visible UI change -> compare `get_screen_fingerprint` before/after, then call `get_network_activity` immediately after the action and `classify_action_outcome` with the observed requests
 
 For backend/API activity, `wait_for_screen_change` is not the right verification tool unless a visible transition is also expected.
 

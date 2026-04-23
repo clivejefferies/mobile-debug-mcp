@@ -65,10 +65,13 @@ async function run() {
   assert(classifyActionOutcome, 'classify_action_outcome should be registered')
   assert.match((classifyActionOutcome as any).description, /backend\/API activity without a visible UI change/i)
   assert.match((classifyActionOutcome as any).description, /get_network_activity/i)
+  assert.match((classifyActionOutcome as any).description, /immediately after the action/i)
 
   const getNetworkActivity = toolDefinitions.find((tool) => tool.name === 'get_network_activity')
   assert(getNetworkActivity, 'get_network_activity should be registered')
   assert.match((getNetworkActivity as any).description, /backend\/API activity without a visible UI change/i)
+  assert.doesNotMatch((getNetworkActivity as any).description, /Call this only when/i)
+  assert.match((getNetworkActivity as any).description, /immediately after an action/i)
 
   await assert.rejects(() => handleToolCall('unknown_tool'), /Unknown tool: unknown_tool/)
 
