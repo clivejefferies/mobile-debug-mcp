@@ -147,7 +147,7 @@ Response (example):
     "fingerprint": "abc123",
     "screenshot": "<base64 PNG string>",
     "ui_tree": { ... },
-    "logs": [ { "timestamp": 1710000000, "level": "ERROR", "message": "NullPointerException at CheckoutViewModel" } ]
+    "logs": [ { "timestamp": "2024-03-09T12:00:00.000Z", "level": "ERROR", "tag": "CheckoutViewModel", "pid": 1234, "message": "NullPointerException at CheckoutViewModel" } ]
   },
   "semantic": {
     "screen": "Checkout",
@@ -203,5 +203,5 @@ Start a background adb logcat stream and retrieve parsed NDJSON entries.
 read_log_stream response example:
 
 ```json
-{ "entries": [ { "timestamp": "2026-03-20T...Z", "level": "E", "tag": "AppTag", "message": "FATAL EXCEPTION" } ], "crash_summary": { "crash_detected": true } }
+{ "entries": [ { "timestamp": "2026-03-20T...Z", "level": "ERROR", "tag": "AppTag", "pid": 1234, "message": "FATAL EXCEPTION" } ], "crash_summary": { "crash_detected": true } }
 ```

@@ -95,7 +95,7 @@ function deriveSnapshotSemantic(raw: CaptureDebugSnapshotRawResponse): SnapshotS
 
   const hasErrorLogs = raw.logs.some((entry) => /error|fatal exception|exception|failed/i.test(entry.message))
   const hasLoadingSignals = texts.some((text) => /loading|please wait|spinner|progress/i.test(text))
-  const hasPrimaryText = texts.some((text) => /sign in|log in|log in|login|home|checkout|settings|menu|profile|search/i.test(text))
+  const hasPrimaryText = texts.some((text) => /sign in|log in|login|home|checkout|settings|menu|profile|search/i.test(text))
   const hasScreenshot = typeof raw.screenshot === 'string' && raw.screenshot.length > 0
   const hasUiTree = !!tree && Array.isArray(tree.elements)
 
@@ -137,7 +137,7 @@ function deriveSnapshotSemantic(raw: CaptureDebugSnapshotRawResponse): SnapshotS
     signals,
     actions_available: actionables.length > 0 ? actionables.slice(0, 10) : null,
     confidence,
-    warnings: confidence >= 0.7 && warnings.length === 0 ? [] : warnings
+    warnings
   }
 }
 
