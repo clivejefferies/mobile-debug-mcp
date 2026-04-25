@@ -2,7 +2,7 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
-## [0.24.7]
+## [0.24.8]
 - Improved slider interaction
 
 ## [0.24.7]
