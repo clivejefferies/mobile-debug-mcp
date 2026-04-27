@@ -2,6 +2,12 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.25.1]
+- Platform-native element identity metadata for UI targeting
+- Hierarchy-independent element references
+- Selector confidence metadata for reliability
+- Structured fallback resolution strategy
+
 ## [0.25.0]
 - Introduces the `expect_state` tool and a standardized state object for UI elements across Android and iOS.
 

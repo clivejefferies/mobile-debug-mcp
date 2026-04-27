@@ -13,7 +13,7 @@ export { wrapResponse, toolDefinitions, handleToolCall }
 
 export const serverInfo = {
   name: 'mobile-debug-mcp',
-  version: '0.25.0'
+  version: '0.25.1'
 }
 
 export function createServer() {
