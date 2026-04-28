@@ -112,6 +112,23 @@ export function inferScrollFailure(message: string | undefined): { failureCode: 
   return { failureCode: 'UNKNOWN', retryable: false }
 }
 
+const ACTION_LIFECYCLE_STATE_BY_OUTCOME = {
+  success: 'pending_verification',
+  failure: 'failed'
+} as const
+
+export function determineActionLifecycleState({
+  success,
+  failure
+}: {
+  success: boolean
+  failure?: { failureCode: ActionFailureCode; retryable: boolean }
+}): NonNullable<ActionExecutionResult['lifecycle_state']> {
+  if (failure) return ACTION_LIFECYCLE_STATE_BY_OUTCOME.failure
+  if (success) return ACTION_LIFECYCLE_STATE_BY_OUTCOME.success
+  return ACTION_LIFECYCLE_STATE_BY_OUTCOME.success
+}
+
 export function buildActionExecutionResult({
   actionType,
   device,
@@ -121,7 +138,8 @@ export function buildActionExecutionResult({
   uiFingerprintBefore,
   uiFingerprintAfter,
   failure,
-  details
+  details,
+  sourceModule
 }: {
   actionType: string
   device?: ActionExecutionResult['device']
@@ -132,6 +150,7 @@ export function buildActionExecutionResult({
   uiFingerprintAfter: string | null
   failure?: { failureCode: ActionFailureCode; retryable: boolean }
   details?: Record<string, unknown>
+  sourceModule: 'server' | 'interact'
 }): ActionExecutionResult {
   const timestampMs = Date.now()
   const timestamp = new Date(timestampMs).toISOString()
@@ -139,6 +158,8 @@ export function buildActionExecutionResult({
     action_id: nextActionId(actionType, timestampMs),
     timestamp,
     action_type: actionType,
+    lifecycle_state: determineActionLifecycleState({ success, failure }),
+    source_module: sourceModule,
     ...(device ? { device } : {}),
     target: {
       selector,

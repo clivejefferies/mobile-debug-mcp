@@ -69,6 +69,8 @@ MUST be returned in this structure:
   action_id: string,
   timestamp: string,
   action_type: string,
+  lifecycle_state?: 'pending_verification' | 'failed',
+  source_module?: 'server' | 'interact',
   target: {
     selector: object,
     resolved: object | null
@@ -87,6 +89,8 @@ Rules:
 
 - `success` is at the top level, not nested
 - `target` contains only selection and resolution context
+- `lifecycle_state` reflects the post-dispatch runtime state
+- `source_module` identifies where the envelope was produced
 - fingerprints represent observed pre/post UI state on a best-effort basis
 - `failure_code` is optional but MUST be used when a structured mapping exists
 

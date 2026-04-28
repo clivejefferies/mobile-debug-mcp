@@ -36,6 +36,8 @@ Example response:
   "action_id": "tap_1710000000000_1",
   "timestamp": "2026-04-23T08:00:00.000Z",
   "action_type": "tap",
+  "lifecycle_state": "pending_verification",
+  "source_module": "server",
   "target": { "selector": { "x": 100, "y": 200 }, "resolved": null },
   "success": true,
   "ui_fingerprint_before": "fp_before",
@@ -333,6 +335,8 @@ Success response:
   "action_id": "tap_element_1710000000000_1",
   "timestamp": "2026-04-23T08:00:00.000Z",
   "action_type": "tap_element",
+  "lifecycle_state": "pending_verification",
+  "source_module": "interact",
   "target": {
     "selector": { "elementId": "el_123" },
     "resolved": {

@@ -258,6 +258,8 @@ export interface ActionExecutionResult {
   action_id: string;
   timestamp: string;
   action_type: string;
+  lifecycle_state?: 'pending_verification' | 'failed';
+  source_module?: 'server' | 'interact';
   device?: DeviceInfo;
   target: {
     selector: Record<string, unknown> | null;
