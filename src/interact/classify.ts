@@ -66,15 +66,13 @@ export function classifyActionOutcome(input: ClassifyActionOutcomeInput): Classi
     }
   }
 
+  const failedRequest = networkRequests?.find((r) => r.status === 'failure' || r.status === 'retryable')
+  if (failedRequest) {
+    return { outcome: 'backend_failure', reasoning: `network request ${failedRequest.endpoint} returned ${failedRequest.status}` }
+  }
+
   // Step 3 — local-state actions should be verified with state-specific signals first
   if (actionCategory === 'local_state') {
-    if (networkRequests && networkRequests.length > 0) {
-      const failedRequest = networkRequests.find((r) => r.status === 'failure' || r.status === 'retryable')
-      if (failedRequest) {
-        return { outcome: 'backend_failure', reasoning: `network request ${failedRequest.endpoint} returned ${failedRequest.status}` }
-      }
-    }
-
     const logNote = hasLogErrors ? ' (log errors present)' : ''
     return {
       outcome: 'no_op',
@@ -90,23 +88,17 @@ export function classifyActionOutcome(input: ClassifyActionOutcomeInput): Classi
     }
   }
 
-  // Step 5 — any network failure
-  const failedRequest = networkRequests.find((r) => r.status === 'failure' || r.status === 'retryable')
-  if (failedRequest) {
-    return { outcome: 'backend_failure', reasoning: `network request ${failedRequest.endpoint} returned ${failedRequest.status}` }
-  }
-
-  // Step 6 — no network requests at all
+  // Step 5 — no network requests at all
   if (networkRequests.length === 0) {
     const logNote = hasLogErrors ? ' (log errors present)' : ''
     return { outcome: 'no_op', reasoning: `side-effect action and no network activity${logNote}` }
   }
 
-  // Step 7 — network requests exist and all succeeded
+  // Step 6 — network requests exist and all succeeded
   if (networkRequests.every((r) => r.status === 'success')) {
     return { outcome: 'ui_failure', reasoning: 'network requests succeeded but UI did not change' }
   }
 
-  // Step 8 — fallback
+  // Step 7 — fallback
   return { outcome: 'unknown', reasoning: 'signals are inconclusive' }
 }

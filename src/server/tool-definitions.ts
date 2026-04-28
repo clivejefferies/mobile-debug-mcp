@@ -930,12 +930,13 @@ HOW TO GATHER INPUTS before calling:
 
 RULES (applied in order — stop at first match):
 1. If uiChanged=true OR expectedElementVisible=true → outcome=success
-2. If actionType maps to a local-state action → prefer state-based verification and avoid default network fallback
+2. If actionType is missing → outcome=unknown
 3. If any request has status=failure or retryable → outcome=backend_failure
-4. If actionType maps to a side-effect action and no networkRequests were supplied → outcome=unknown
-5. If no requests returned → outcome=no_op
-6. If all requests succeeded → outcome=ui_failure
-7. Otherwise → outcome=unknown
+4. If actionType maps to a local-state action → outcome=no_op; prefer state-based verification and avoid default network fallback
+5. If actionType maps to a side-effect action and no networkRequests were supplied → outcome=unknown
+6. If no requests returned → outcome=no_op
+7. If all requests succeeded → outcome=ui_failure
+8. Otherwise → outcome=unknown
 
 BEHAVIOUR after outcome:
 - success → continue
