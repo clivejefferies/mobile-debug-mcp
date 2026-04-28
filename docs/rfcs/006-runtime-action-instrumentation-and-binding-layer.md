@@ -4,7 +4,7 @@
 
 This RFC defines how the execution model in RFC 005 is mapped onto the current runtime behaviour of the system.
 
-It does not assume a new instrumentation system exists. Instead, it describes how lifecycle semantics are derived from existing execution flows, logs, and module behaviour.
+It does not assume a new instrumentation system exists. Instead, it describes how lifecycle semantics are derived from existing execution flows, logs, module behaviour, and lightweight runtime metadata attached to action envelopes.
 
 It specifies:
 - how existing `action_type` values are interpreted under RFC 005 semantics
@@ -32,7 +32,7 @@ However, the current system already contains:
 - distributed logging and partial instrumentation within modules
 
 There is no central instrumentation system and no explicit lifecycle emitter.
-Instead, lifecycle meaning must be inferred from runtime behaviour.
+Instead, lifecycle meaning is inferred from runtime behaviour and the `lifecycle_state` / `source_module` fields now attached to action envelopes.
 
 This results in:
 - implicit execution state transitions
@@ -133,6 +133,7 @@ Instead:
 - src/server emits partial logs during routing and validation
 - src/interact emits execution logs and platform responses
 - platform adapters may emit additional debugging information
+- action envelopes now carry lightweight lifecycle metadata for post-dispatch state and source ownership
 
 Lifecycle traceability is therefore assembled from distributed signals rather than a unified event system.
 
@@ -195,6 +196,7 @@ Observability is currently distributed across:
 - src/server logs
 - src/interact logs
 - platform debug output
+- action envelope metadata
 
 There is no unified event schema.
 

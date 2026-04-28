@@ -11,7 +11,9 @@ Inputs:
 
 Output Structure:
  - action_id, timestamp (ISO 8601), action_type
-- target.selector = { appId }
+ - lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+ - source_module: runtime source of the action envelope
+ - target.selector = { appId }
 - success = true when launch was dispatched successfully
 - failure_code/retryable when launch dispatch fails
 - ui_fingerprint_before/ui_fingerprint_after when available
@@ -84,7 +86,9 @@ Inputs:
 
 Output Structure:
  - action_id, timestamp (ISO 8601), action_type
-- target.selector = { appId }
+ - lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+ - source_module: runtime source of the action envelope
+ - target.selector = { appId }
 - success = true when the restart command completed
 - failure_code/retryable when restart dispatch fails
 - ui_fingerprint_before/ui_fingerprint_after when available
@@ -617,7 +621,9 @@ Inputs:
 
 Output Structure:
  - action_id, timestamp (ISO 8601), action_type
-- target.selector = { x, y }
+ - lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+ - source_module: runtime source of the action envelope
+ - target.selector = { x, y }
 - success = true when the tap was dispatched
 - failure_code/retryable when dispatch fails
 - ui_fingerprint_before/ui_fingerprint_after when available
@@ -673,6 +679,8 @@ Output Structure:
 - action_id: unique timestamp-based action identifier
 - timestamp: ISO 8601 timestamp for the action attempt
 - action_type: "tap_element"
+- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+- source_module: runtime source of the action envelope
 - target.selector: original target handle ({ elementId })
 - target.resolved: minimal resolved element info used for the tap
 - success: true when the tap was dispatched
@@ -725,6 +733,8 @@ Inputs:
 
 Output Structure:
 - action_id, timestamp (ISO 8601), action_type
+- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+- source_module: runtime source of the action envelope
 - target.selector = { x1, y1, x2, y2, duration }
 - success = true when the swipe was dispatched
 - failure_code/retryable when dispatch fails
@@ -777,6 +787,8 @@ Inputs:
 
 Output Structure:
 - action_id, timestamp (ISO 8601), action_type
+- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+- source_module: runtime source of the action envelope
 - target.selector = original selector
 - target.resolved = minimal resolved element info when found
 - success = true when scrolling produced a visible target element
@@ -831,6 +843,8 @@ Inputs:
 
 Output Structure:
 - action_id, timestamp (ISO 8601), action_type
+- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+- source_module: runtime source of the action envelope
 - target.selector = { text }
 - success = true when text input was dispatched
 - failure_code/retryable when dispatch fails
@@ -880,6 +894,8 @@ Inputs:
 
 Output Structure:
 - action_id, timestamp (ISO 8601), action_type
+- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+- source_module: runtime source of the action envelope
 - target.selector = { key: "back" }
 - success = true when the back action was dispatched
 - failure_code/retryable when dispatch fails

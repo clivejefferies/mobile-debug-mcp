@@ -61,6 +61,8 @@ async function run() {
       action_id: 'tap_element_1',
       timestamp: '2026-04-23T08:00:00.000Z',
       action_type: 'tap_element',
+      lifecycle_state: 'pending_verification',
+      source_module: 'interact',
       target: {
         selector: { elementId: 'el_ready' },
         resolved: { elementId: 'el_ready', text: 'Ready', resource_id: null, accessibility_id: null, class: 'Button', bounds: [0, 0, 10, 10], index: 0 }
@@ -74,6 +76,8 @@ async function run() {
     const tapElementPayload = JSON.parse((tapElementResponse as any).content[0].text)
     assert.strictEqual(tapElementPayload.success, true)
     assert.strictEqual(tapElementPayload.action_type, 'tap_element')
+    assert.strictEqual(tapElementPayload.lifecycle_state, 'pending_verification')
+    assert.strictEqual(tapElementPayload.source_module, 'interact')
     assert.match(tapElementPayload.timestamp, /^\d{4}-\d{2}-\d{2}T/)
     assert.strictEqual(tapElementPayload.target.resolved.elementId, 'el_ready')
     assert.strictEqual(tapElementPayload.ui_fingerprint_before, 'fp_before')
@@ -84,6 +88,8 @@ async function run() {
     const tapPayload = JSON.parse((tapResponse as any).content[0].text)
     assert.strictEqual(tapPayload.success, true)
     assert.strictEqual(tapPayload.action_type, 'tap')
+    assert.strictEqual(tapPayload.lifecycle_state, 'pending_verification')
+    assert.strictEqual(tapPayload.source_module, 'server')
     assert.match(tapPayload.timestamp, /^\d{4}-\d{2}-\d{2}T/)
     assert.deepStrictEqual(tapPayload.target.selector, { x: 1, y: 2 })
     assert.strictEqual(tapPayload.ui_fingerprint_before, 'fp_mock')
@@ -107,6 +113,8 @@ async function run() {
     const startAppPayload = JSON.parse((startAppResponse as any).content[0].text)
     assert.strictEqual(startAppPayload.success, true)
     assert.strictEqual(startAppPayload.action_type, 'start_app')
+    assert.strictEqual(startAppPayload.lifecycle_state, 'pending_verification')
+    assert.strictEqual(startAppPayload.source_module, 'server')
     assert.match(startAppPayload.timestamp, /^\d{4}-\d{2}-\d{2}T/)
     assert.strictEqual(startAppPayload.device.id, 'emulator-5554')
     assert.deepStrictEqual(startAppPayload.target.selector, { appId: 'com.example.app' })

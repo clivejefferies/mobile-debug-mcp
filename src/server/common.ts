@@ -121,7 +121,8 @@ export function buildActionExecutionResult({
   uiFingerprintBefore,
   uiFingerprintAfter,
   failure,
-  details
+  details,
+  sourceModule = 'server'
 }: {
   actionType: string
   device?: ActionExecutionResult['device']
@@ -132,6 +133,7 @@ export function buildActionExecutionResult({
   uiFingerprintAfter: string | null
   failure?: { failureCode: ActionFailureCode; retryable: boolean }
   details?: Record<string, unknown>
+  sourceModule?: 'server' | 'interact'
 }): ActionExecutionResult {
   const timestampMs = Date.now()
   const timestamp = new Date(timestampMs).toISOString()
@@ -139,6 +141,8 @@ export function buildActionExecutionResult({
     action_id: nextActionId(actionType, timestampMs),
     timestamp,
     action_type: actionType,
+    lifecycle_state: failure ? 'failed' : 'pending_verification',
+    source_module: sourceModule,
     ...(device ? { device } : {}),
     target: {
       selector,

@@ -6,7 +6,7 @@ export { AndroidInteract, iOSInteract };
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { ToolsObserve } from '../observe/index.js'
 import { computeSnapshotSignature } from '../observe/snapshot-metadata.js'
-import { nextActionId } from '../server/common.js'
+import { buildActionExecutionResult } from '../server/common.js'
 import type {
   ActionFailureCode,
   ActionTargetResolved,
@@ -291,27 +291,25 @@ export class ToolsInteract {
   }
 
   private static _actionFailure(
-    actionId: string,
-    timestamp: string,
     actionType: string,
     selector: Record<string, unknown> | null,
     resolved: ActionTargetResolved | null,
     failureCode: ActionFailureCode,
     retryable: boolean,
     uiFingerprintBefore: string | null,
-    uiFingerprintAfter?: string | null
+    uiFingerprintAfter?: string | null,
+    sourceModule: 'server' | 'interact' = 'interact'
   ): TapElementResponse {
-    return {
-      action_id: actionId,
-      timestamp,
-      action_type: actionType,
-      target: { selector, resolved },
+    return buildActionExecutionResult({
+      actionType,
+      selector,
+      resolved,
       success: false,
-      failure_code: failureCode,
-      retryable,
-      ui_fingerprint_before: uiFingerprintBefore,
-      ui_fingerprint_after: uiFingerprintAfter
-    }
+      uiFingerprintBefore,
+      uiFingerprintAfter: uiFingerprintAfter ?? null,
+      failure: { failureCode, retryable },
+      sourceModule
+    })
   }
 
   static _resetResolvedUiElementsForTests() {
@@ -472,14 +470,11 @@ export class ToolsInteract {
   }
 
   static async tapElementHandler({ elementId }: { elementId: string }): Promise<TapElementResponse> {
-    const timestampMs = Date.now()
-    const timestamp = new Date(timestampMs).toISOString()
     const actionType = 'tap_element'
-    const actionId = nextActionId(actionType, timestampMs)
     const selector = { elementId }
     const resolved = ToolsInteract._resolvedUiElements.get(elementId)
     if (!resolved) {
-      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, null, 'STALE_REFERENCE', true, null)
+      return ToolsInteract._actionFailure(actionType, selector, null, 'STALE_REFERENCE', true, null)
     }
 
     const fingerprintBefore = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
@@ -491,22 +486,22 @@ export class ToolsInteract {
     const currentMatch = ToolsInteract._findCurrentResolvedElement(elements, treePlatform, treeDeviceId, resolved)
 
     if (!currentMatch) {
-      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, null, 'STALE_REFERENCE', true, fingerprintBefore)
+      return ToolsInteract._actionFailure(actionType, selector, null, 'STALE_REFERENCE', true, fingerprintBefore)
     }
 
     const resolvedTarget = ToolsInteract._resolvedTargetFromElement(resolved.elementId, currentMatch.el, currentMatch.index)
 
     if (!ToolsInteract._isVisibleElement(currentMatch.el)) {
-      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
+      return ToolsInteract._actionFailure(actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
     }
 
     if (currentMatch.el.enabled === false) {
-      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
+      return ToolsInteract._actionFailure(actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
     }
 
     const bounds = ToolsInteract._normalizeBounds(currentMatch.el.bounds) ?? resolved.bounds
     if (!bounds || bounds[2] <= bounds[0] || bounds[3] <= bounds[1]) {
-      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
+      return ToolsInteract._actionFailure(actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
     }
 
     const x = Math.floor((bounds[0] + bounds[2]) / 2)
@@ -515,23 +510,20 @@ export class ToolsInteract {
 
     if (!tapResult.success) {
       const fingerprintAfterFailure = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
-      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, resolvedTarget, 'UNKNOWN', false, fingerprintBefore, fingerprintAfterFailure)
+      return ToolsInteract._actionFailure(actionType, selector, resolvedTarget, 'UNKNOWN', false, fingerprintBefore, fingerprintAfterFailure)
     }
 
     const fingerprintAfter = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
-    return {
-      action_id: actionId,
-      timestamp,
-      action_type: actionType,
-      ...(tree?.device ? { device: tree.device } : {}),
-      target: {
-        selector,
-        resolved: resolvedTarget
-      },
+    return buildActionExecutionResult({
+      actionType,
+      device: tree?.device,
+      selector,
+      resolved: resolvedTarget,
       success: true,
-      ui_fingerprint_before: fingerprintBefore,
-      ui_fingerprint_after: fingerprintAfter
-    }
+      uiFingerprintBefore: fingerprintBefore,
+      uiFingerprintAfter: fingerprintAfter,
+      sourceModule: 'interact'
+    })
   }
 
   static async swipeHandler({ platform = 'android', x1, y1, x2, y2, duration, deviceId }: { platform?: 'android' | 'ios', x1: number, y1: number, x2: number, y2: number, duration: number, deviceId?: string }) {
