@@ -172,6 +172,27 @@ Guidance:
 
 ---
 
+## adjust_control
+
+Purpose:
+
+- adjust a numeric control value with bounded verification
+
+Notes:
+
+- initial support is for slider-like controls that expose `value_range` or readable numeric value state
+- `expect_state` is the verification surface used to read back the resulting value
+- direct target placement is preferred; drag fallback is treated as degraded mode
+- the tool returns `target_state`, `actual_state`, `within_tolerance`, `converged`, `attempts`, and `adjustment_mode`
+
+Input example:
+
+```json
+{ "selector": { "text": "Duration" }, "property": "value", "targetValue": 30, "tolerance": 0.5, "platform": "android", "deviceId": "emulator-5554" }
+```
+
+---
+
 ## find_element
 
 Locate a UI element on the current screen using semantic matching and return an actionable element descriptor.

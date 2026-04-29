@@ -52,7 +52,7 @@ For backend/API activity, `wait_for_screen_change` is not the right verification
 Action tools mutate application state.
 
 Includes:
-`start_app`, `restart_app`, `tap`, `tap_element`, `swipe`, `scroll_to_element`, `type_text`, `press_back`
+`start_app`, `restart_app`, `tap`, `tap_element`, `swipe`, `scroll_to_element`, `type_text`, `press_back`, `adjust_control`
 
 ### 4.2 Required Semantics
 

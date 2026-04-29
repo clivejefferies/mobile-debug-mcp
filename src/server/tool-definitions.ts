@@ -556,6 +556,62 @@ Failure Handling:
     }
   },
   {
+    name: 'adjust_control',
+    description: `Purpose:
+Adjust a numeric control value with verification.
+
+This is the initial adjustable-control surface for slider-like controls and other controls that expose a numeric value or value_range.
+
+Inputs:
+- selector or element_id
+- property (defaults to "value")
+- targetValue
+- tolerance (optional)
+- maxAttempts (optional)
+- platform/deviceId (optional)
+
+Output Structure:
+- action_id, timestamp (ISO 8601), action_type
+- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)
+- source_module: runtime source of the action envelope
+- target_state / actual_state / within_tolerance / converged / attempts / adjustment_mode
+- target.selector = original selector or element handle
+- success = true when the control converges within tolerance
+
+Verification Guidance:
+- Prefer direct target placement when value_range is available; fall back to a drag only if the direct tap does not converge
+- Use expect_state for the control value readback
+- Treat coordinate fallback as degraded mode
+
+Failure Handling:
+- ELEMENT_NOT_FOUND → re-resolve the control
+- ELEMENT_NOT_INTERACTABLE → the control cannot be adjusted through the current runtime
+- TIMEOUT → the control did not converge within bounded retries
+- UNKNOWN → capture a snapshot and stop`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'object',
+          properties: {
+            text: { type: 'string' },
+            resource_id: { type: 'string' },
+            accessibility_id: { type: 'string' },
+            contains: { type: 'boolean', default: false }
+          }
+        },
+        element_id: { type: 'string', description: 'Optional previously resolved element identifier.' },
+        property: { type: 'string', description: 'Readable numeric state property to adjust.', default: 'value' },
+        targetValue: { type: 'number', description: 'Target numeric value.' },
+        tolerance: { type: 'number', description: 'Accepted numeric tolerance around the target value.', default: 0 },
+        maxAttempts: { type: 'number', description: 'Maximum adjustment attempts.', default: 3 },
+        platform: { type: 'string', enum: ['android', 'ios'], description: 'Optional platform override' },
+        deviceId: { type: 'string', description: 'Optional device serial/udid' }
+      },
+      required: ['targetValue']
+    }
+  },
+  {
     name: 'wait_for_ui',
     description: `Purpose:
 Resolve elements and/or detect that a UI transition or availability condition has occurred.

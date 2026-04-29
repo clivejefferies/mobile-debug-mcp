@@ -14,6 +14,7 @@ async function run() {
   const originalExpectScreenHandler = (ToolsInteract as any).expectScreenHandler
   const originalExpectElementVisibleHandler = (ToolsInteract as any).expectElementVisibleHandler
   const originalExpectStateHandler = (ToolsInteract as any).expectStateHandler
+  const originalAdjustControlHandler = (ToolsInteract as any).adjustControlHandler
   const originalStartApp = AndroidManage.prototype.startApp
   const originalCaptureScreenshotHandler = (ToolsObserve as any).captureScreenshotHandler
   const originalGetUITreeHandler = (ToolsObserve as any).getUITreeHandler
@@ -191,6 +192,43 @@ async function run() {
     assert.strictEqual(expectStatePayload.expected_state.property, 'checked')
     assert.strictEqual(expectStatePayload.observed_state.value, true)
 
+    ;(ToolsInteract as any).adjustControlHandler = async () => ({
+      action_id: 'adjust_control_1',
+      timestamp: '2026-04-29T08:00:00.000Z',
+      action_type: 'adjust_control',
+      lifecycle_state: 'pending_verification',
+      source_module: 'interact',
+      target: {
+        selector: { elementId: 'el_duration' },
+        resolved: {
+          elementId: 'el_duration',
+          text: 'Duration',
+          resource_id: null,
+          accessibility_id: null,
+          class: 'android.view.View',
+          bounds: [0, 0, 100, 20],
+          index: 0
+        }
+      },
+      success: true,
+      ui_fingerprint_before: 'fp_before',
+      ui_fingerprint_after: 'fp_after',
+      target_state: { property: 'value', target_value: 30, tolerance: 0.5 },
+      actual_state: { property: 'value', value: 30, raw_value: 30 },
+      within_tolerance: true,
+      converged: true,
+      attempts: 1,
+      adjustment_mode: 'semantic'
+    })
+
+    const adjustControlResponse = await handleToolCall('adjust_control', { element_id: 'el_duration', targetValue: 30, tolerance: 0.5, property: 'value' })
+    const adjustControlPayload = JSON.parse((adjustControlResponse as any).content[0].text)
+    assert.strictEqual(adjustControlPayload.success, true)
+    assert.strictEqual(adjustControlPayload.action_type, 'adjust_control')
+    assert.strictEqual(adjustControlPayload.target_state.target_value, 30)
+    assert.strictEqual(adjustControlPayload.within_tolerance, true)
+    assert.strictEqual(adjustControlPayload.converged, true)
+
     ;(ToolsInteract as any).tapHandler = async () => {
       throw new Error('boom')
     }
@@ -319,6 +357,7 @@ async function run() {
     ;(ToolsObserve as any).getUITreeHandler = originalGetUITreeHandler
     ;(ToolsObserve as any).getScreenFingerprintHandler = originalGetScreenFingerprintHandler
     ;(ToolsObserve as any).captureDebugSnapshotHandler = originalCaptureDebugSnapshotHandler
+    ;(ToolsInteract as any).adjustControlHandler = originalAdjustControlHandler
   }
 }
 

@@ -16,6 +16,7 @@ async function run() {
   assert(names.includes('capture_screenshot'))
   assert(names.includes('get_ui_tree'))
   assert(names.includes('tap_element'))
+  assert(names.includes('adjust_control'))
 
   const waitForUI = toolDefinitions.find((tool) => tool.name === 'wait_for_ui')
   assert(waitForUI, 'wait_for_ui should be registered')
@@ -65,6 +66,13 @@ async function run() {
   assert.match((expectElementVisible as any).description, /Primary and authoritative verification tool/i)
   assert.match((expectElementVisible as any).description, /selector is the primary input/i)
   assert.match((expectElementVisible as any).description, /Returns structured binary success\/failure only/i)
+
+  const adjustControl = toolDefinitions.find((tool) => tool.name === 'adjust_control')
+  assert(adjustControl, 'adjust_control should be registered')
+  assert.deepStrictEqual((adjustControl as any).inputSchema.required, ['targetValue'])
+  assert.strictEqual((adjustControl as any).inputSchema.properties.targetValue.type, 'number')
+  assert.match((adjustControl as any).description, /numeric control value/i)
+  assert.match((adjustControl as any).description, /expect_state/i)
 
   const classifyActionOutcome = toolDefinitions.find((tool) => tool.name === 'classify_action_outcome')
   assert(classifyActionOutcome, 'classify_action_outcome should be registered')
