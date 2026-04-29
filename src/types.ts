@@ -413,6 +413,23 @@ export interface ExpectStateResponse {
   retryable?: boolean;
 }
 
+export interface AdjustControlResponse extends ActionExecutionResult {
+  target_state: {
+    property: string;
+    target_value: number;
+    tolerance: number;
+  };
+  actual_state: {
+    property: string;
+    value: number | null;
+    raw_value?: number | null;
+  } | null;
+  within_tolerance: boolean;
+  converged: boolean;
+  attempts: number;
+  adjustment_mode: 'semantic' | 'gesture' | 'coordinate';
+}
+
 export interface WaitForUIChangeResponse {
   success: boolean;
   observed_change: 'hierarchy_diff' | 'text_change' | 'state_change' | null;
