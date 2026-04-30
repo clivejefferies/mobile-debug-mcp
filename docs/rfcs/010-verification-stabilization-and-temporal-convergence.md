@@ -50,7 +50,7 @@ Verification remains deterministic and grounded in observable UI state.
 
 ---
 
-## 5. Runtime Surfaces
+## 5. Runtime Ownership and Integration
 
 This RFC applies to existing verification surfaces:
 
@@ -114,7 +114,7 @@ These values MUST be configurable but bounded to prevent unbounded waits.
 
 ---
 
-## 6.5 Reference Stabilization Algorithm
+## 6.1 Reference Stabilization Algorithm
 
 For a given verification predicate `P(snapshot)`:
 
@@ -158,7 +158,26 @@ Before declaring failure, the system MUST attempt at least one fresh UI read wit
 
 ---
 
-## 8. Failure Classification Adjustment
+## 8. Runtime Failure Code Mapping
+
+Existing runtime failure signals MUST map into RFC 010 failure categories.
+
+| Runtime Code | RFC 010 Category |
+|--------------|------------------|
+| ELEMENT_NOT_FOUND | Target Resolution Failure |
+| STALE_REFERENCE | Target Resolution Failure |
+| AMBIGUOUS_TARGET | Target Resolution Failure |
+| TIMEOUT | Execution Failure |
+| ACTION_REJECTED | Execution Failure |
+| VERIFICATION_FAILED | Verification Failure |
+| EXPECT_STATE_MISMATCH | Verification Failure |
+| CONTROL_CONVERGENCE_FAILED | Control Convergence Failure |
+| SEMANTIC_MISMATCH | Semantic Mismatch Failure |
+| UNKNOWN | Execution Failure (default fallback) |
+
+This mapping MUST be deterministic, exhaustive, and versioned with the runtime.
+
+### 8.1 Failure Gating Rules
 
 Failure MUST only be emitted when:
 
@@ -170,8 +189,6 @@ Transient mismatches SHOULD NOT be classified as:
 - VERIFICATION_FAILED
 
 until stabilization logic has completed.
-
-### 8.1 Failure Gating Rules
 
 - FAILURE MUST NOT be emitted if `stable_observation_count` has not been attempted within the stabilization window.
 - FAILURE MUST NOT be emitted without at least one fresh read within `snapshot_stale_threshold_ms`.
@@ -205,7 +222,7 @@ Verification stabilization reduces false-positive failure signals that would oth
 
 ---
 
-## 12. Output Behavior (Progressive Extension)
+## 13. Output Behavior (Progressive Extension)
 
 Future implementations MAY expose additional metadata such as:
 
@@ -222,7 +239,7 @@ These fields are optional and for observability only.
 
 ---
 
-## 13. Failure Modes
+## 14. Failure Modes
 
 Verification stabilization MAY fail due to:
 
@@ -234,7 +251,7 @@ In these cases, failure MUST be emitted after stabilization window is exhausted.
 
 ---
 
-## 14. Success Metrics
+## 15. Success Metrics
 
 - reduced false-negative readiness failures
 - higher first-pass verification success
@@ -243,6 +260,6 @@ In these cases, failure MUST be emitted after stabilization window is exhausted.
 
 ---
 
-## 15. Summary
+## 16. Summary
 
 This RFC introduces temporal stabilization into verification, ensuring that UI state is evaluated based on convergence over time rather than single snapshots. It improves reliability by eliminating transient mismatches and stale-state errors without introducing probabilistic behavior.
