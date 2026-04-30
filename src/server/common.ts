@@ -7,6 +7,9 @@ import type {
 } from '../types.js'
 import { ToolsObserve } from '../observe/index.js'
 
+export const DEFAULT_MAX_RECOVERY_ATTEMPTS = 3
+export const DEFAULT_MAX_RETRY_DEPTH = 3
+
 export function wrapResponse<T>(data: T) {
   return {
     content: [{
@@ -135,10 +138,11 @@ export function determineActionLifecycleState({
 function mapFailureCodeToFailureClass(code: ActionFailureCode): FailureClass {
   switch (code) {
     case 'ELEMENT_NOT_FOUND':
-    case 'ELEMENT_NOT_INTERACTABLE':
     case 'AMBIGUOUS_TARGET':
     case 'STALE_REFERENCE':
       return 'TargetResolutionFailure'
+    case 'ELEMENT_NOT_INTERACTABLE':
+      return 'ExecutionFailure'
     case 'TIMEOUT':
     case 'ACTION_REJECTED':
     case 'NAVIGATION_NO_CHANGE':
@@ -159,9 +163,9 @@ function buildRecoveryState(failureCode: ActionFailureCode, retryable: boolean):
     failure_class: mapFailureCodeToFailureClass(failureCode),
     runtime_code: failureCode,
     recovery_attempts: 0,
-    max_recovery_attempts: 3,
+    max_recovery_attempts: DEFAULT_MAX_RECOVERY_ATTEMPTS,
     retry_depth: 0,
-    max_retry_depth: 3,
+    max_retry_depth: DEFAULT_MAX_RETRY_DEPTH,
     is_terminal: false,
     retry_allowed: retryable
   }

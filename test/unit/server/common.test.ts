@@ -28,6 +28,20 @@ function run() {
   assert.strictEqual(recoveryResult.recovery?.max_recovery_attempts, 3)
   assert.strictEqual(recoveryResult.recovery?.max_retry_depth, 3)
 
+  const notInteractableResult = buildActionExecutionResult({
+    actionType: 'tap',
+    sourceModule: 'server',
+    selector: { x: 5, y: 5 },
+    success: false,
+    uiFingerprintBefore: 'fp_before',
+    uiFingerprintAfter: 'fp_after',
+    failure: { failureCode: 'ELEMENT_NOT_INTERACTABLE', retryable: true }
+  })
+  assert.strictEqual(notInteractableResult.failure_code, 'ELEMENT_NOT_INTERACTABLE')
+  assert.strictEqual(notInteractableResult.recovery?.failure_class, 'ExecutionFailure')
+  assert.strictEqual(notInteractableResult.recovery?.runtime_code, 'ELEMENT_NOT_INTERACTABLE')
+  assert.strictEqual(notInteractableResult.recovery?.retry_allowed, true)
+
   console.log('server common tests passed')
 }
 

@@ -2,6 +2,9 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.27.0]
+- defines a structured recovery and replanning model for UI interaction failures, enabling the system to respond to execution uncertainty with bounded, deterministic recovery strategies.
+
 ## [0.26.5]
 - Introduces a semantic control model to improve the identification and interaction with custom and composite UI controls. 
 
