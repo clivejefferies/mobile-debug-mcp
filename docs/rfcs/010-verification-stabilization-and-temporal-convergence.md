@@ -216,7 +216,7 @@ Execution MUST NOT prematurely surface verification failure without applying tem
 
 ---
 
-## 11. Integration with RFC 010.1 (Recovery Contract)
+## 11. Integration with RFC 011.1 (Recovery Contract)
 
 Verification stabilization reduces false-positive failure signals that would otherwise trigger downstream recovery mechanisms (defined in a companion RFC).
 

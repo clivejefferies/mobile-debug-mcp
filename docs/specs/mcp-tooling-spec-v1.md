@@ -80,6 +80,17 @@ MUST be returned in this structure:
   ui_fingerprint_after: string | null,
   failure_code?: string,
   retryable?: boolean,
+  recovery?: {
+    failure_class: string,
+    runtime_code: string,
+    recovery_strategy?: string,
+    recovery_attempts: number,
+    max_recovery_attempts: number,
+    retry_depth: number,
+    max_retry_depth: number,
+    is_terminal: boolean,
+    retry_allowed?: boolean
+  },
   device?: DeviceInfo,
   details?: object
 }
@@ -93,6 +104,7 @@ Rules:
 - `source_module` identifies where the envelope was produced
 - fingerprints represent observed pre/post UI state on a best-effort basis
 - `failure_code` is optional but MUST be used when a structured mapping exists
+- `recovery` MAY be attached to failed actions to carry typed recovery metadata
 
 ### 4.4 Allowed Deviations
 

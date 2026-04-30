@@ -395,6 +395,16 @@ Failure response:
   "success": false,
   "failure_code": "STALE_REFERENCE",
   "retryable": true,
+  "recovery": {
+    "failure_class": "TargetResolutionFailure",
+    "runtime_code": "STALE_REFERENCE",
+    "recovery_attempts": 0,
+    "max_recovery_attempts": 3,
+    "retry_depth": 0,
+    "max_retry_depth": 3,
+    "is_terminal": false,
+    "retry_allowed": true
+  },
   "ui_fingerprint_before": "fp_before",
   "ui_fingerprint_after": "fp_before"
 }

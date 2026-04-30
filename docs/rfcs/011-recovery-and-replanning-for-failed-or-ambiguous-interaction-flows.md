@@ -1,6 +1,6 @@
 
 
-# RFC 010 — Recovery and Replanning for Failed or Ambiguous Interaction Flows
+# RFC 011 — Recovery and Replanning for Failed or Ambiguous Interaction Flows
 
 ## 1. Summary
 
@@ -108,9 +108,9 @@ All interaction failures MUST be classified into one of the following categories
 
 ## 6. Runtime Failure Code Mapping
 
-Existing runtime failure signals MUST map into RFC 010 failure categories.
+Existing runtime failure signals MUST map into RFC 011 failure categories.
 
-| Runtime Code | RFC 010 Category |
+| Runtime Code | RFC 011 Category |
 |--------------|------------------|
 | ELEMENT_NOT_FOUND | Target Resolution Failure |
 | STALE_REFERENCE | Target Resolution Failure |
