@@ -1,9 +1,14 @@
 import type {
   ActionExecutionResult,
   ActionFailureCode,
-  ActionTargetResolved
+  ActionTargetResolved,
+  FailureClass,
+  RecoveryState
 } from '../types.js'
 import { ToolsObserve } from '../observe/index.js'
+
+export const DEFAULT_MAX_RECOVERY_ATTEMPTS = 3
+export const DEFAULT_MAX_RETRY_DEPTH = 3
 
 export function wrapResponse<T>(data: T) {
   return {
@@ -103,6 +108,7 @@ export function normalizeResolvedTarget(value: Partial<ActionTargetResolved> | n
 
 export function inferGenericFailure(message: string | undefined): { failureCode: ActionFailureCode; retryable: boolean } {
   if (message && /timeout/i.test(message)) return { failureCode: 'TIMEOUT', retryable: true }
+  if (message && /semantic mismatch/i.test(message)) return { failureCode: 'SEMANTIC_MISMATCH', retryable: false }
   return { failureCode: 'UNKNOWN', retryable: false }
 }
 
@@ -127,6 +133,42 @@ export function determineActionLifecycleState({
   if (failure) return ACTION_LIFECYCLE_STATE_BY_OUTCOME.failure
   if (success) return ACTION_LIFECYCLE_STATE_BY_OUTCOME.success
   return ACTION_LIFECYCLE_STATE_BY_OUTCOME.success
+}
+
+function mapFailureCodeToFailureClass(code: ActionFailureCode): FailureClass {
+  switch (code) {
+    case 'ELEMENT_NOT_FOUND':
+    case 'AMBIGUOUS_TARGET':
+    case 'STALE_REFERENCE':
+      return 'TargetResolutionFailure'
+    case 'ELEMENT_NOT_INTERACTABLE':
+      return 'ExecutionFailure'
+    case 'TIMEOUT':
+    case 'ACTION_REJECTED':
+    case 'NAVIGATION_NO_CHANGE':
+    case 'UNKNOWN':
+      return 'ExecutionFailure'
+    case 'VERIFICATION_FAILED':
+    case 'EXPECT_STATE_MISMATCH':
+      return 'VerificationFailure'
+    case 'CONTROL_CONVERGENCE_FAILED':
+      return 'ControlConvergenceFailure'
+    case 'SEMANTIC_MISMATCH':
+      return 'SemanticMismatchFailure'
+  }
+}
+
+function buildRecoveryState(failureCode: ActionFailureCode, retryable: boolean): RecoveryState {
+  return {
+    failure_class: mapFailureCodeToFailureClass(failureCode),
+    runtime_code: failureCode,
+    recovery_attempts: 0,
+    max_recovery_attempts: DEFAULT_MAX_RECOVERY_ATTEMPTS,
+    retry_depth: 0,
+    max_retry_depth: DEFAULT_MAX_RETRY_DEPTH,
+    is_terminal: false,
+    retry_allowed: retryable
+  }
 }
 
 export function buildActionExecutionResult({
@@ -167,6 +209,7 @@ export function buildActionExecutionResult({
     },
     success,
     ...(failure ? { failure_code: failure.failureCode, retryable: failure.retryable } : {}),
+    ...(failure ? { recovery: buildRecoveryState(failure.failureCode, failure.retryable) } : {}),
     ui_fingerprint_before: uiFingerprintBefore,
     ui_fingerprint_after: uiFingerprintAfter,
     ...(details ? { details } : {})

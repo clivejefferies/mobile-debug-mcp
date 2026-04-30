@@ -113,6 +113,20 @@ export interface UIElementSemanticMetadata {
   state_shape?: 'continuous' | 'discrete' | 'semantic' | null;
 }
 
+export type FailureClass =
+  | 'TargetResolutionFailure'
+  | 'ExecutionFailure'
+  | 'VerificationFailure'
+  | 'ControlConvergenceFailure'
+  | 'SemanticMismatchFailure';
+
+export type RecoveryStrategy =
+  | 're_resolve'
+  | 'alternate_candidate'
+  | 'state_refresh'
+  | 'retry_adjustment'
+  | 'step_back';
+
 export interface LoadingState {
   active: boolean;
   signal: string;
@@ -240,7 +254,24 @@ export type ActionFailureCode =
   | 'NAVIGATION_NO_CHANGE'
   | 'AMBIGUOUS_TARGET'
   | 'STALE_REFERENCE'
+  | 'ACTION_REJECTED'
+  | 'VERIFICATION_FAILED'
+  | 'EXPECT_STATE_MISMATCH'
+  | 'CONTROL_CONVERGENCE_FAILED'
+  | 'SEMANTIC_MISMATCH'
   | 'UNKNOWN'
+
+export interface RecoveryState {
+  failure_class: FailureClass;
+  runtime_code: ActionFailureCode;
+  recovery_strategy?: RecoveryStrategy;
+  recovery_attempts: number;
+  max_recovery_attempts: number;
+  retry_depth: number;
+  max_retry_depth: number;
+  is_terminal: boolean;
+  retry_allowed?: boolean;
+}
 
 export interface ActionTargetResolved {
   elementId: string | null;
@@ -345,6 +376,7 @@ export interface ActionExecutionResult {
   success: boolean;
   failure_code?: ActionFailureCode;
   retryable?: boolean;
+  recovery?: RecoveryState;
   ui_fingerprint_before?: string | null;
   ui_fingerprint_after?: string | null;
   details?: Record<string, unknown>;
