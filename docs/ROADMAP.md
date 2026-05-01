@@ -32,6 +32,7 @@ Track roadmap impact across releases using:
 - Gesture success rate
 - Mean time to root cause during debugging
 - Overall agent task completion rate
+- Reduced sequencing errors in multi-step interaction flows
 
 Primary KPI:
 Higher task success with fewer retries.
@@ -214,6 +215,8 @@ Addresses failures where agents:
 - Snapshot revision / staleness metadata
 - Focused snapshot views / incremental snapshot diffs
 - Compose-aware wait robustness improvements
+- Explicit interaction sequencing guidance (tap → wait → verify pattern)
+- Exploration of optional action-level synchronization ergonomics (e.g. implicit stabilization or wait flags)
 
 ## Expected Impact
 Very high.
@@ -231,6 +234,7 @@ Very high.
 - Fewer retries caused by premature actions
 - Higher wait success rate for dynamic UI flows
 - Lower fallback usage to network/log checks
+- Reduced need for manual sequencing by agents in stateful flows
 
 ## Dependencies
 Depends on:
