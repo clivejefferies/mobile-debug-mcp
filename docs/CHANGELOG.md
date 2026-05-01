@@ -2,9 +2,12 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
-## [0.28.0]
+## [0.29.0]
 - Added empty resource handlers and declared the `resources` capability so Codex MCP discovery can complete the handshake against the published npm package.
 - Moved the startup healthcheck behind an opt-in flag to keep the stdio protocol channel quiet by default.
+
+## [0.28.0]
+- Added structured execution trace model for all actions within the MCP runtime. It provides visibility into resolution, execution, verification, stabilization, and recovery stages.
 
 ## [0.27.0]
 - defines a structured recovery and replanning model for UI interaction failures, enabling the system to respond to execution uncertainty with bounded, deterministic recovery strategies.
