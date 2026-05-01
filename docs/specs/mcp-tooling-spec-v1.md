@@ -80,6 +80,19 @@ MUST be returned in this structure:
   ui_fingerprint_after: string | null,
   failure_code?: string,
   retryable?: boolean,
+  trace: {
+    action_id: string,
+    steps: Array<{
+      stage: 'resolve' | 'execute' | 'verify' | 'stabilize' | 'recover',
+      timestamp: number,
+      result: 'success' | 'failure' | 'retry',
+      attempt_index: number,
+      cycle_id?: number,
+      metadata?: Record<string, unknown>
+    }>,
+    final_outcome: 'success' | 'failure',
+    attempts: number
+  },
   recovery?: {
     failure_class: string,
     runtime_code: string,
@@ -104,6 +117,7 @@ Rules:
 - `source_module` identifies where the envelope was produced
 - fingerprints represent observed pre/post UI state on a best-effort basis
 - `failure_code` is optional but MUST be used when a structured mapping exists
+- `trace` is required and carries the observable execution path
 - `recovery` MAY be attached to failed actions to carry typed recovery metadata
 
 ### 4.4 Allowed Deviations

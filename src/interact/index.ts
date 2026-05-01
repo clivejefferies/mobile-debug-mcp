@@ -6,8 +6,9 @@ export { AndroidInteract, iOSInteract };
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { ToolsObserve } from '../observe/index.js'
 import { computeSnapshotSignature } from '../observe/snapshot-metadata.js'
-import { buildActionExecutionResult } from '../server/common.js'
+import { buildActionExecutionResult, createTraceStep, nextActionId } from '../server/common.js'
 import type {
+  ActionTrace,
   ActionFailureCode,
   ActionTargetResolved,
   AdjustControlResponse,
@@ -18,6 +19,7 @@ import type {
   WaitForUIChangeResponse,
   UIElementSemanticMetadata,
   UIElementState,
+  TraceStep,
   TapElementResponse
 } from '../types.js'
 
@@ -77,6 +79,39 @@ interface RankedResolutionCandidate {
   score: number
   reason: string
   interactable: boolean
+}
+
+function buildObservationTrace({
+  actionType,
+  stage,
+  success,
+  attempts,
+  metadata
+}: {
+  actionType: string
+  stage: 'verify' | 'stabilize' | 'resolve'
+  success: boolean
+  attempts: number
+  metadata?: Record<string, unknown>
+}): ActionTrace {
+  const now = Date.now()
+  const actionId = nextActionId(actionType, now)
+  const steps: TraceStep[] = [
+    createTraceStep({
+      stage,
+      timestamp: now,
+      result: success ? 'success' : 'failure',
+      attemptIndex: 0,
+      metadata
+    })
+  ]
+
+  return {
+    action_id: actionId,
+    steps,
+    final_outcome: success ? 'success' : 'failure',
+    attempts: Math.max(1, Math.floor(attempts || 1))
+  }
 }
 
 interface FindElementResolutionSummary {
@@ -2023,7 +2058,24 @@ export class ToolsInteract {
         basis,
         matched: success,
         reason
-      }
+      },
+      trace: buildObservationTrace({
+        actionType: 'expect_screen',
+        stage: 'verify',
+        success,
+        attempts: 1,
+        metadata: {
+          expected_screen: expectedScreen,
+          observed_screen: {
+            fingerprint: observedScreen.fingerprint,
+            screen: observedScreenLabel
+          },
+          comparison: {
+            basis,
+            matched: success
+          }
+        }
+      })
     }
   }
 
@@ -2093,7 +2145,18 @@ export class ToolsInteract {
             semantic: (result.element as any).semantic ?? null
           }
         },
-        reason: 'selector is visible'
+        reason: 'selector is visible',
+        trace: buildObservationTrace({
+          actionType: 'expect_element_visible',
+          stage: 'verify',
+          success: true,
+          attempts: 1,
+          metadata: {
+            selector,
+            element_id: result.element.elementId ?? element_id ?? null,
+            status: result.status
+          }
+        })
       }
     }
 
@@ -2112,7 +2175,19 @@ export class ToolsInteract {
       },
       reason: result?.error?.message ?? 'selector is not visible',
       failure_code: errorCode,
-      retryable: errorCode === 'TIMEOUT'
+      retryable: errorCode === 'TIMEOUT',
+      trace: buildObservationTrace({
+        actionType: 'expect_element_visible',
+        stage: 'verify',
+        success: false,
+        attempts: 1,
+        metadata: {
+          selector,
+          element_id: element_id ?? null,
+          status: result?.status ?? null,
+          reason: result?.error?.message ?? 'selector is not visible'
+        }
+      })
     }
   }
 
@@ -2157,6 +2232,52 @@ export class ToolsInteract {
     let lastObservedValue: boolean | number | string | Record<string, unknown> | null = null
     let lastRawValue: boolean | number | string | null = null
     let lastResolvedElementId: string | null = element_id ?? null
+    let lastSnapshotFreshnessMs: number | null = null
+
+    const buildStateTrace = (outcome: 'success' | 'failure'): ActionTrace => {
+      const traceTimestamp = Date.now()
+      return {
+        action_id: nextActionId('expect_state', traceTimestamp),
+        steps: [
+          createTraceStep({
+            stage: 'resolve',
+            timestamp: traceTimestamp,
+            result: lastObservedElement ? 'success' : 'failure',
+            attemptIndex: 0,
+            metadata: {
+              selector: selector ?? null,
+              element_id: lastResolvedElementId,
+              matched: !!lastObservedElement
+            }
+          }),
+          createTraceStep({
+            stage: 'stabilize',
+            timestamp: traceTimestamp + 1,
+            result: outcome,
+            attemptIndex: 1,
+            metadata: {
+              stabilization_attempts: attempts,
+              stable_observation_count: outcome === 'success' ? stableCount : 0,
+              snapshot_freshness_ms: lastSnapshotFreshnessMs
+            }
+          }),
+          createTraceStep({
+            stage: 'verify',
+            timestamp: traceTimestamp + 2,
+            result: outcome,
+            attemptIndex: 2,
+            metadata: {
+              property,
+              expected,
+              observed_value: lastObservedValue,
+              reason: outcome === 'success' ? 'value matches expected state' : lastReason
+            }
+          })
+        ],
+        final_outcome: outcome,
+        attempts
+      }
+    }
 
     while (Date.now() <= deadline) {
       attempts++
@@ -2165,6 +2286,7 @@ export class ToolsInteract {
       const treePlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
       const treeDeviceId = tree?.device?.id || deviceId
       const treeAgeMs = typeof tree?.captured_at_ms === 'number' ? Date.now() - tree.captured_at_ms : null
+      lastSnapshotFreshnessMs = treeAgeMs
 
       let matched: { el: UiElement, idx: number } | null = null
 
@@ -2336,7 +2458,8 @@ export class ToolsInteract {
             stabilization_attempts: attempts,
             stabilization_window_ms: Date.now() - start,
             stable_observation_count: stableCount,
-            snapshot_freshness_ms: treeAgeMs ?? undefined
+            snapshot_freshness_ms: treeAgeMs ?? undefined,
+            trace: buildStateTrace('success')
           } as ExpectStateResponse & {
             stabilization_attempts?: number;
             stabilization_window_ms?: number;
@@ -2371,7 +2494,8 @@ export class ToolsInteract {
       },
       reason: lastReason,
       failure_code: lastFailureCode,
-      retryable: true
+      retryable: true,
+      trace: buildStateTrace('failure')
     }
   }
 

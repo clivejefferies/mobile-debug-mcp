@@ -113,6 +113,25 @@ export interface UIElementSemanticMetadata {
   state_shape?: 'continuous' | 'discrete' | 'semantic' | null;
 }
 
+export type TraceStage = 'resolve' | 'execute' | 'verify' | 'stabilize' | 'recover';
+export type TraceResult = 'success' | 'failure' | 'retry';
+
+export interface TraceStep {
+  stage: TraceStage;
+  timestamp: number;
+  result: TraceResult;
+  attempt_index: number;
+  cycle_id?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ActionTrace {
+  action_id: string;
+  steps: TraceStep[];
+  final_outcome: 'success' | 'failure';
+  attempts: number;
+}
+
 export type FailureClass =
   | 'TargetResolutionFailure'
   | 'ExecutionFailure'
@@ -377,6 +396,7 @@ export interface ActionExecutionResult {
   failure_code?: ActionFailureCode;
   retryable?: boolean;
   recovery?: RecoveryState;
+  trace: ActionTrace;
   ui_fingerprint_before?: string | null;
   ui_fingerprint_after?: string | null;
   details?: Record<string, unknown>;
@@ -400,6 +420,7 @@ export interface ExpectScreenResponse {
     matched: boolean;
     reason: string;
   };
+  trace: ActionTrace;
 }
 
 export interface ExpectElementVisibleResponse {
@@ -423,6 +444,7 @@ export interface ExpectElementVisibleResponse {
   reason?: string;
   failure_code?: 'TIMEOUT' | 'ELEMENT_NOT_FOUND' | 'UNKNOWN';
   retryable?: boolean;
+  trace: ActionTrace;
 }
 
 export interface ExpectStateResponse {
@@ -451,6 +473,7 @@ export interface ExpectStateResponse {
   stabilization_window_ms?: number;
   stable_observation_count?: number;
   snapshot_freshness_ms?: number;
+  trace: ActionTrace;
 }
 
 export interface AdjustControlResponse extends ActionExecutionResult {

@@ -40,6 +40,25 @@ Example response:
   "source_module": "server",
   "target": { "selector": { "x": 100, "y": 200 }, "resolved": null },
   "success": true,
+  "trace": {
+    "action_id": "tap_element_1710000000002_3",
+    "steps": [
+      {
+        "stage": "resolve",
+        "timestamp": 1710000000002,
+        "result": "success",
+        "attempt_index": 0
+      },
+      {
+        "stage": "execute",
+        "timestamp": 1710000000003,
+        "result": "success",
+        "attempt_index": 1
+      }
+    ],
+    "final_outcome": "success",
+    "attempts": 1
+  },
   "ui_fingerprint_before": "fp_before",
   "ui_fingerprint_after": "fp_after"
 }
@@ -395,6 +414,31 @@ Failure response:
   "success": false,
   "failure_code": "STALE_REFERENCE",
   "retryable": true,
+  "trace": {
+    "action_id": "tap_element_1710000000003_4",
+    "steps": [
+      {
+        "stage": "resolve",
+        "timestamp": 1710000000003,
+        "result": "failure",
+        "attempt_index": 0
+      },
+      {
+        "stage": "execute",
+        "timestamp": 1710000000004,
+        "result": "failure",
+        "attempt_index": 1
+      },
+      {
+        "stage": "recover",
+        "timestamp": 1710000000005,
+        "result": "retry",
+        "attempt_index": 2
+      }
+    ],
+    "final_outcome": "failure",
+    "attempts": 1
+  },
   "recovery": {
     "failure_class": "TargetResolutionFailure",
     "runtime_code": "STALE_REFERENCE",

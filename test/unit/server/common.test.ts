@@ -27,6 +27,8 @@ function run() {
   assert.strictEqual(recoveryResult.recovery?.retry_allowed, false)
   assert.strictEqual(recoveryResult.recovery?.max_recovery_attempts, 3)
   assert.strictEqual(recoveryResult.recovery?.max_retry_depth, 3)
+  assert.strictEqual(recoveryResult.trace.final_outcome, 'failure')
+  assert.strictEqual(recoveryResult.trace.steps.at(-1)?.stage, 'recover')
 
   const notInteractableResult = buildActionExecutionResult({
     actionType: 'tap',
@@ -41,6 +43,8 @@ function run() {
   assert.strictEqual(notInteractableResult.recovery?.failure_class, 'ExecutionFailure')
   assert.strictEqual(notInteractableResult.recovery?.runtime_code, 'ELEMENT_NOT_INTERACTABLE')
   assert.strictEqual(notInteractableResult.recovery?.retry_allowed, true)
+  assert.strictEqual(notInteractableResult.trace.steps[0].stage, 'resolve')
+  assert.strictEqual(notInteractableResult.trace.steps.at(-1)?.stage, 'recover')
 
   console.log('server common tests passed')
 }
