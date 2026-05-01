@@ -45,25 +45,22 @@ Higher task success with fewer retries.
 - Stronger State Verification — Complete (Foundational verification layer shipped)
 - Richer Element Identity — Complete (Identity and selector confidence foundations shipped)
 - Better Compose / Custom Control Semantics — Complete (Semantic role enrichment and custom-adjustable inference shipped)
+- Verification Stabilization and Temporal Convergence — Complete (Temporal verification and convergence logic shipped)
+- Action Trace and Execution Observability — Complete (Structured execution trace model shipped)
 
 ## Current Focus
 
-- Wait and Synchronization Reliability
+- Wait and Synchronization Reliability (implementation + tuning)
 - Actionability Resolution
-- Verification Stabilization and Temporal Convergence
+- Adjustable Control Precision Hardening
 
 ## Upcoming Work
 
 - Adjustable Control Precision Hardening
 - Environment Auto-Configuration and Toolchain Discovery
 - Adjustable Control Support
-- Verification Stabilization and Temporal Convergence
 - Signal-Oriented Diagnostic Filtering
 - Long Press Gesture
-# Stronger State Verification
-# Richer Element Identity
-# Wait and Synchronization Reliability
-# Environment Auto-Configuration and Toolchain Discovery
 
 ## Rationale
 Reduce onboarding friction and improve developer experience by minimizing manual setup dependencies.
@@ -115,7 +112,7 @@ Strengthens:
 ## Later Horizon
 
 - Pinch to Zoom
-- Action Trace Correlation
+- Advanced Trace Correlation and Analysis
 
 ---
 
@@ -251,7 +248,7 @@ Blocks or strengthens:
 ## Rationale
 Real-world feedback exposed false-negative readiness failures caused by transient UI timing, even when target state had actually converged.
 
-**Status:** Planned
+**Status:** Completed
 
 Addresses friction where agents:
 - fail readiness checks on transient timing races
@@ -615,11 +612,13 @@ Depends on:
 
 ---
 
-# Action Trace Correlation
+# Advanced Trace Correlation
 
 ## Rationale
 Very valuable for debugging,
 but less critical than improving control success first.
+
+Builds on the foundational Action Trace and Execution Observability capability by linking traces across UI, network, and logs.
 
 **Status:** Planned
 
@@ -695,7 +694,6 @@ Make core loop reliable and reduce onboarding friction.
 - Adjustable Control Precision Hardening
 - Better Compose / Custom Control Semantics
 - Signal-Oriented Diagnostic Filtering
-- Verification Stabilization and Temporal Convergence
 
 Focus:
 Improve control precision, verification convergence, custom control reliability, and signal observability.
@@ -712,7 +710,7 @@ Expand interaction capability after core control reliability is improved.
 
 ## Wave 4 (Advanced Gestures + Deep Observability)
 - Pinch to Zoom
-- Action Trace Correlation
+- Advanced Trace Correlation and Analysis
 
 Focus:
 Advanced gestures + deep observability.
@@ -725,16 +723,15 @@ Roadmap Ordering:
 1. Stronger State Verification
 2. Richer Element Identity
 3. Wait and Synchronization Reliability
-4. Verification Stabilization and Temporal Convergence
-5. Environment Auto-Configuration and Toolchain Discovery
-6. Actionability Resolution
-7. Adjustable Control Support
-8. Adjustable Control Precision Hardening
-9. Better Compose / Custom Control Semantics
-10. Signal-Oriented Diagnostic Filtering
-11. Long Press Gesture
-12. Pinch to Zoom
-13. Action Trace Correlation
+4. Actionability Resolution
+5. Adjustable Control Support
+6. Adjustable Control Precision Hardening
+7. Environment Auto-Configuration and Toolchain Discovery
+8. Better Compose / Custom Control Semantics
+9. Signal-Oriented Diagnostic Filtering
+10. Long Press Gesture
+11. Pinch to Zoom
+12. Advanced Trace Correlation and Analysis
 
 Rationale:
 - Early roadmap items harden state, targeting, synchronization, environment readiness, and action execution.
