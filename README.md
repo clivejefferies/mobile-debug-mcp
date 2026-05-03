@@ -90,12 +90,6 @@ Feature building:
 - Agents: [AGENTS.md](AGENTS.md) — cold-start guidance for autonomous agents entering the public repo
 - Skills: [skills/README.md](skills/README.md) — portable Markdown skill packages for agents such as Copilot, Codex, Claude, or custom systems
 
-## Agent skills
-
-- `skills/mcp-builder/` contains reusable build/install guidance for agents
-- `skills/test-authoring/` contains reusable test-creation guidance aligned to this repo's current test structure
-- Skills are written as plain Markdown packages so they can be consumed by different agent systems rather than one vendor-specific runtime
-
 ## License
 
 MIT
