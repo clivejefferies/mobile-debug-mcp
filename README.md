@@ -36,6 +36,8 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 
 </details>
 
+<details>
+
 <summary>Copilot</summary>
 
 ```json
